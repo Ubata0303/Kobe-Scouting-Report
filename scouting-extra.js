@@ -3,6 +3,7 @@
     const DEFAULT_EXTRA = {
         opponent: "20261015 / Fighters",
         memberList: {
+            numColor: "#0432ff",
             offTitle: "OFF Member List",
             offRows: [
                 [
@@ -116,6 +117,7 @@
             pdfFileName: saved.pdfFileName || null,
             memberList: saved.memberList || base.memberList,
             cadence: saved.cadence || base.cadence,
+            cadencePages: Array.isArray(saved.cadencePages) ? saved.cadencePages : (saved.cadence?.pages || []),
             playDiagrams: Array.isArray(saved.playDiagrams) ? saved.playDiagrams : (base.playDiagrams || []),
             updatedAt: saved.updatedAt || null
         };
@@ -128,6 +130,7 @@
             pdfFileName: partial.pdfFileName !== undefined ? partial.pdfFileName : current.pdfFileName,
             memberList: partial.memberList !== undefined ? partial.memberList : current.memberList,
             cadence: partial.cadence !== undefined ? partial.cadence : current.cadence,
+            cadencePages: partial.cadencePages !== undefined ? partial.cadencePages : current.cadencePages,
             playDiagrams: partial.playDiagrams !== undefined ? partial.playDiagrams : current.playDiagrams,
             updatedAt: new Date().toISOString()
         };
@@ -259,10 +262,46 @@
         const areaTokens = tokens.filter(t => t.top >= minTop && t.top <= maxTop);
         // 背番号候補：1〜2桁の数字で、フォントサイズが大きめ（>=18）
         // ※右下のページ番号（x > 740 && top > 550）は除外
-        const numTokens = areaTokens.filter(t => {
+        const rawNumTokens = areaTokens.filter(t => {
             if (t.x > 740 && t.top > 550) return false;
             return /^\d{1,2}$/.test(t.text) && t.fontSize >= 18;
         });
+
+        // 縦に並んだ重なり背番号（例: 木田 75/72、伊藤 90/43）を検出して1つのカードに統合
+        rawNumTokens.sort((a, b) => a.top - b.top);
+        const numTokens = [];
+        const usedNumIdx = new Set();
+        for (let i = 0; i < rawNumTokens.length; i++) {
+            if (usedNumIdx.has(i)) continue;
+            const t1 = rawNumTokens[i];
+            let pair = null;
+            let pairIdx = -1;
+            for (let j = i + 1; j < rawNumTokens.length; j++) {
+                if (usedNumIdx.has(j)) continue;
+                const t2 = rawNumTokens[j];
+                // X座標がほぼ同じ（同一カード列、差22pt以内）かつY座標が近い（差60pt以内）
+                if (Math.abs(t1.centerX - t2.centerX) < 22 && Math.abs(t1.top - t2.top) < 60) {
+                    pair = t2;
+                    pairIdx = j;
+                    break;
+                }
+            }
+            if (pair) {
+                usedNumIdx.add(pairIdx);
+                numTokens.push({
+                    text: t1.text + '\n' + pair.text,
+                    top: t1.top,
+                    bottomNumTop: pair.top,
+                    x: Math.min(t1.x, pair.x),
+                    width: Math.max(t1.width, pair.width),
+                    centerX: (t1.centerX + pair.centerX) / 2,
+                    fontSize: t1.fontSize,
+                    isMultiNum: true
+                });
+            } else {
+                numTokens.push(t1);
+            }
+        }
 
         // 背番号をY座標で行クラスタリング（差が45pt以内なら同じ段）
         numTokens.sort((a, b) => a.top - b.top);
@@ -280,8 +319,19 @@
             if (!placed) rows.push([nt]);
         }
 
+        const STANDALONE_POS = /^(QB|RB|TE|WR|OL|C|G|T|LT|LG|RG|RT|DL|DE|DT|LB|DB|CB|S|FS|SS|K|P|LS|SN|HOL|BD|PP|PR|KR)$/i;
+
         const cardRows = [];
-        for (const row of rows) {
+        for (let rIdx = 0; rIdx < rows.length; rIdx++) {
+            const row = rows[rIdx];
+            const curAvgTop = row.reduce((s, x) => s + x.top, 0) / row.length;
+            const prevAvgTop = rIdx > 0 ? rows[rIdx - 1].reduce((s, x) => s + x.top, 0) / rows[rIdx - 1].length : null;
+            const nextAvgTop = rIdx < rows.length - 1 ? rows[rIdx + 1].reduce((s, x) => s + x.top, 0) / rows[rIdx + 1].length : null;
+
+            // 前後の段の境界の中間値を計算し、次段のポジション表記などが混入するのを防ぐ
+            const rowMinTop = prevAvgTop ? (prevAvgTop + curAvgTop) / 2 : curAvgTop - 85;
+            const rowMaxTop = nextAvgTop ? (curAvgTop + nextAvgTop) / 2 : curAvgTop + 90;
+
             row.sort((a, b) => a.centerX - b.centerX);
             const cards = [];
             for (let i = 0; i < row.length; i++) {
@@ -289,21 +339,28 @@
                 const leftBound = i > 0 ? (row[i - 1].centerX + nt.centerX) / 2 : nt.centerX - 65;
                 const rightBound = i < row.length - 1 ? (nt.centerX + row[i + 1].centerX) / 2 : nt.centerX + 65;
 
-                // このカードのX範囲内にあるトークンを抽出（ポジションは背番号の約70pt上にあるため -85pt まで見る）
+                // このカードのX範囲内・段のY範囲内にあるトークンを抽出
                 const colTokens = areaTokens.filter(t =>
                     t !== nt &&
                     t.centerX >= leftBound &&
                     t.centerX <= rightBound &&
-                    t.top >= nt.top - 85 &&
-                    t.top <= nt.top + 95
+                    t.top >= rowMinTop &&
+                    t.top <= rowMaxTop
                 );
 
-                // 背番号より上にあるトークン＝ポジション
-                const above = colTokens.filter(t => t.top < nt.top - 8).sort((a, b) => b.top - a.top);
+                // 背番号より上にあるトークン＝ポジション（数字のみは除外）
+                const above = colTokens
+                    .filter(t => t.top < nt.top - 8 && !/^\d+$/.test(t.text))
+                    .sort((a, b) => b.top - a.top);
                 const pos = above.length ? above[0].text : '';
 
                 // 背番号より下にあるトークン＝名前、身長体重など
-                const below = colTokens.filter(t => t.top > nt.top + 10).sort((a, b) => (Math.abs(a.top - b.top) < 5 ? a.x - b.x : a.top - b.top));
+                const numBottom = nt.bottomNumTop ? nt.bottomNumTop + 8 : nt.top + 10;
+                const below = colTokens
+                    .filter(t => t.top > numBottom)
+                    .filter(t => !STANDALONE_POS.test(t.text.trim()))
+                    .sort((a, b) => (Math.abs(a.top - b.top) < 5 ? a.x - b.x : a.top - b.top));
+
                 // 同じ行（top差 < 5pt）は結合
                 const belowLines = [];
                 for (const bt of below) {
@@ -317,6 +374,10 @@
 
                 let rawName = belowLines[0] ? belowLines[0].text : '';
                 let meta = belowLines.slice(1).map(x => x.text).join(' ');
+
+                // 末尾に付着した単独ポジション略称（例: 172cm/103kg RB の "RB"）を除去
+                meta = meta.replace(/\s+(QB|RB|TE|WR|OL|C|G|T|LT|LG|RG|RT|DL|DE|DT|LB|DB|CB|S|FS|SS|K|P|LS|SN|HOL|BD|PP|PR|KR)$/i, '').trim();
+
                 let note = '';
                 let alert = false;
 
@@ -573,6 +634,7 @@
 
         const result = {};
         const playDiagrams = [];
+        const cadencePages = [];
 
         for (let p = 1; p <= pdf.numPages; p++) {
             if (typeof onProgress === 'function') {
@@ -597,6 +659,29 @@
                     result.memberList = result.memberList || clone(getExtraData().memberList);
                     result.memberList.offRows = offRows;
                 }
+                // PDF内の背番号色（赤 vs 青）を自動検出
+                try {
+                    const opList = await page.getOperatorList();
+                    let redCount = 0;
+                    let blueCount = 0;
+                    for (let i = 0; i < opList.fnArray.length; i++) {
+                        const fn = opList.fnArray[i];
+                        const args = opList.argsArray[i];
+                        if ((fn === pdfjsLib.OPS.setFillRGBColor || fn === pdfjsLib.OPS.setFillColorN) && args && args.length >= 3) {
+                            const r = args[0] <= 1 ? args[0] : args[0] / 255;
+                            const g = args[1] <= 1 ? args[1] : args[1] / 255;
+                            const b = args[2] <= 1 ? args[2] : args[2] / 255;
+                            if (r > 0.6 && g < 0.25 && b < 0.25) redCount++;
+                            if (b > 0.6 && r < 0.25 && g < 0.35) blueCount++;
+                        }
+                    }
+                    result.memberList = result.memberList || clone(getExtraData().memberList);
+                    if (redCount > blueCount && redCount >= 3) {
+                        result.memberList.numColor = '#c00000';
+                    } else if (blueCount > redCount && blueCount >= 3) {
+                        result.memberList.numColor = '#0432ff';
+                    }
+                } catch (_) {}
             }
 
             // 3. 4th Down Member List ページ
@@ -610,37 +695,44 @@
                 if (pcRows.length) result.memberList.pcMembers = pcRows.reduce((a, b) => a.concat(b), []);
             }
 
-            // 4. Cadence 詳細ページ（見出しだけでなく本文があるページ）
-            if (/Cadence/i.test(fullText) && tokens.length >= 6) {
+            // 4. Cadence ページ判定：ページの左上に「Cadence」と書いてあるページは全て反映
+            // （top < 70 && x < 220 && /^Cadence/i.test(t.text)）
+            const cadenceHeaderTok = tokens.find(t => t.top < 70 && t.x < 220 && /^Cadence/i.test(t.text));
+            if (cadenceHeaderTok && tokens.length >= 4) {
                 // ヘッダー（top < 65）とフッター（top > 560）を除外
                 const bodyTokens = tokens.filter(t => t.top >= 65 && t.top <= 560);
-                // Y座標順に並べる
                 bodyTokens.sort((a, b) => (Math.abs(a.top - b.top) < 5 ? a.x - b.x : a.top - b.top));
                 const lines = [];
                 for (const bt of bodyTokens) {
                     const last = lines[lines.length - 1];
                     if (last && Math.abs(last.top - bt.top) < 5) {
-                        last.text += bt.text;
+                        last.text += ' ' + bt.text;
                         last.fontSize = Math.max(last.fontSize, bt.fontSize);
                     } else {
                         lines.push({ top: bt.top, text: bt.text, fontSize: bt.fontSize });
                     }
                 }
-                if (lines.length >= 2) {
-                    const headline = lines[0].text;
-                    const items = [];
-                    let cur = null;
-                    let prevTop = lines[0].top;
-                    for (let i = 1; i < lines.length; i++) {
-                        const ln = lines[i];
-                        if (/^[■◼▪●・]/.test(ln.text)) {
-                            cur = { heading: ln.text, bodyLines: [] };
-                            items.push(cur);
-                        } else {
-                            if (!cur) {
+
+                let headline = '';
+                const items = [];
+                let cur = null;
+                let prevTop = 0;
+                for (let i = 0; i < lines.length; i++) {
+                    const ln = lines[i];
+                    if (/^[■◼▪●・【]/.test(ln.text)) {
+                        cur = { heading: ln.text, bodyLines: [] };
+                        items.push(cur);
+                        if (!headline) headline = ln.text;
+                    } else {
+                        if (!cur) {
+                            if (!headline) {
+                                headline = ln.text;
+                            } else {
                                 cur = { heading: '■概要', bodyLines: [] };
                                 items.push(cur);
                             }
+                        }
+                        if (cur) {
                             if (cur.bodyLines.length > 0 && (ln.top - prevTop) > 26) {
                                 cur.bodyLines.push('');
                             }
@@ -650,15 +742,31 @@
                                 .replace(/(\d+回)/g, '{red:$1}');
                             cur.bodyLines.push(decorated);
                         }
-                        prevTop = ln.top;
                     }
-                    result.cadence = {
-                        pageTitle: 'Cadence',
-                        headline: headline,
-                        items: items.map(it => ({ heading: it.heading, body: it.bodyLines.join('\n') })),
-                        image: (getExtraData().cadence || {}).image || ''
-                    };
+                    prevTop = ln.top;
                 }
+
+                // このページに画像描画オペレーションがあるか判定
+                let pageImages = [];
+                try {
+                    const opList = await page.getOperatorList();
+                    const hasImg = opList.fnArray.some(fn =>
+                        fn === pdfjsLib.OPS.paintImageXObject || fn === pdfjsLib.OPS.paintJpegXObject
+                    );
+                    if (hasImg && jpegs && jpegs.length) {
+                        const fieldPhotos = jpegs.filter(j => j.width > 300 && j.width > j.height * 1.15);
+                        pageImages = fieldPhotos.map(j => j.dataUrl);
+                    }
+                } catch (_) {}
+
+                cadencePages.push({
+                    page: p,
+                    pageTitle: 'Cadence',
+                    headline: headline || `Cadence (P.${p})`,
+                    items: items.map(it => ({ heading: it.heading, body: it.bodyLines.join('\n') })),
+                    images: pageImages,
+                    image: pageImages[0] || ''
+                });
             }
 
             // 5. Play Diagram（プレー図面）ページ
@@ -675,12 +783,27 @@
             }
         }
 
-        // Cadence用の埋め込み写真（横長で最も大きいJPEG）があればセット
-        const fieldPhotos = jpegs.filter(j => j.width > 300 && j.width > j.height * 1.15);
-        if (fieldPhotos.length) {
-            const best = fieldPhotos[fieldPhotos.length - 1];
-            result.cadence = result.cadence || clone(getExtraData().cadence);
-            result.cadence.image = best.dataUrl;
+        // Cadence ページ情報の集約（全ページ分を保存）
+        if (cadencePages.length > 0) {
+            result.cadencePages = cadencePages;
+            const allCadencePhotos = cadencePages.reduce((acc, cp) => acc.concat(cp.images || []), []);
+            const bestPhoto = allCadencePhotos[0] || (jpegs.filter(j => j.width > 300 && j.width > j.height * 1.15)[0]?.dataUrl) || '';
+            result.cadence = {
+                pageTitle: 'Cadence',
+                headline: cadencePages[0].headline,
+                items: cadencePages[0].items,
+                image: bestPhoto,
+                images: allCadencePhotos,
+                pages: cadencePages
+            };
+        } else {
+            // Cadence用の埋め込み写真（横長で最も大きいJPEG）があればセット
+            const fieldPhotos = jpegs.filter(j => j.width > 300 && j.width > j.height * 1.15);
+            if (fieldPhotos.length) {
+                const best = fieldPhotos[fieldPhotos.length - 1];
+                result.cadence = result.cadence || clone(getExtraData().cadence);
+                result.cadence.image = best.dataUrl;
+            }
         }
 
         if (playDiagrams.length > 0) {

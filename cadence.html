@@ -99,11 +99,36 @@ body {
 }
 
 /* 青色の大見出し（Cadence : Crap Hut） */
-.cadence-headline {
-    font-size: 2.35rem;
+.cadence-page-section {
+    margin-bottom: 2.8rem;
+    padding-bottom: 2.5rem;
+    border-bottom: 3px dashed var(--line-gray);
+}
+.cadence-page-section:last-child {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: none;
+}
+.cadence-page-header {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 1.5rem;
+}
+.cadence-page-badge {
+    background: #e2e8f0;
+    color: #475569;
+    font-size: 0.85rem;
     font-weight: 700;
-    color: var(--num-blue);
-    margin-bottom: 1.8rem;
+    padding: 3px 10px;
+    border-radius: 6px;
+    white-space: nowrap;
+}
+.cadence-headline {
+    font-size: 2.05rem;
+    font-weight: 700;
+    color: var(--accent);
+    margin-bottom: 0;
     line-height: 1.25;
     letter-spacing: 0.01em;
 }
@@ -113,7 +138,15 @@ body {
     display: grid;
     grid-template-columns: 1.15fr 0.95fr;
     gap: 28px;
-    align-items: end;
+    align-items: start;
+}
+.cadence-content.no-photos {
+    grid-template-columns: 1fr;
+}
+.cadence-photo-area {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
 }
 
 .cadence-items {
@@ -255,12 +288,7 @@ body {
             <h1>Cadence</h1>
         </div>
 
-        <div id="headline-container"></div>
-
-        <div class="cadence-content">
-            <div class="cadence-items" id="cadence-items-container"></div>
-            <div class="cadence-photo-area" id="cadence-photo-area"></div>
-        </div>
+        <div id="cadence-pages-container"></div>
     </div>
 
     <div class="photo-modal" id="photo-modal">
@@ -272,49 +300,85 @@ body {
 (function () {
     let extraData = window.TBScoutingExtra.getExtraData();
 
-    const headlineContainer = document.getElementById('headline-container');
-    const itemsContainer = document.getElementById('cadence-items-container');
-    const photoArea = document.getElementById('cadence-photo-area');
+    const pagesContainer = document.getElementById('cadence-pages-container');
     const photoModal = document.getElementById('photo-modal');
     const photoModalImg = document.getElementById('photo-modal-img');
 
     function render() {
         const cad = extraData.cadence || { headline: '', items: [], image: '' };
-
-        headlineContainer.innerHTML = '';
-        const h2 = document.createElement('h2');
-        h2.className = 'cadence-headline';
-        h2.textContent = cad.headline || '';
-        headlineContainer.appendChild(h2);
-
-        itemsContainer.innerHTML = '';
-        (cad.items || []).forEach(item => {
-            const div = document.createElement('div');
-            div.className = 'cadence-item';
-            div.innerHTML = `
-                <div class="cadence-item-heading">${window.TBScoutingExtra.formatRichText(item.heading)}</div>
-                <div class="cadence-item-body">${window.TBScoutingExtra.formatRichText(item.body)}</div>
-            `;
-            itemsContainer.appendChild(div);
-        });
-
-        photoArea.innerHTML = '';
-        if (cad.image) {
-            const frame = document.createElement('div');
-            frame.className = 'cadence-photo-frame';
-            const img = document.createElement('img');
-            img.src = cad.image;
-            img.alt = 'Cadence Field Photo';
-            frame.appendChild(img);
-            frame.addEventListener('click', () => {
-                photoModalImg.src = cad.image;
-                photoModal.classList.add('open');
-            });
-            const cap = document.createElement('div');
-            cap.className = 'photo-caption';
-            cap.textContent = '※写真をタップすると拡大表示します';
-            photoArea.append(frame, cap);
+        let pages = extraData.cadencePages;
+        if (!Array.isArray(pages) || pages.length === 0) {
+            pages = (cad.pages && cad.pages.length) ? cad.pages : [cad];
         }
+
+        pagesContainer.innerHTML = '';
+        pages.forEach((page, pIdx) => {
+            const pageCard = document.createElement('div');
+            pageCard.className = 'cadence-page-section';
+
+            const headerDiv = document.createElement('div');
+            headerDiv.className = 'cadence-page-header';
+
+            if (pages.length > 1) {
+                const badge = document.createElement('span');
+                badge.className = 'cadence-page-badge';
+                badge.textContent = `Page ${page.page || (pIdx + 1)}`;
+                headerDiv.appendChild(badge);
+            }
+
+            const h2 = document.createElement('h2');
+            h2.className = 'cadence-headline';
+            h2.textContent = page.headline || (pages.length > 1 ? `Cadence (P.${page.page || (pIdx + 1)})` : 'Cadence');
+            headerDiv.appendChild(h2);
+            pageCard.appendChild(headerDiv);
+
+            const photoList = (page.images && page.images.length > 0)
+                ? page.images
+                : (page.image ? [page.image] : (pIdx === 0 && cad.image ? [cad.image] : []));
+            const hasPhotos = photoList.length > 0;
+
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'cadence-content' + (hasPhotos ? ' has-photos' : ' no-photos');
+
+            const itemsDiv = document.createElement('div');
+            itemsDiv.className = 'cadence-items';
+            (page.items || []).forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'cadence-item';
+                div.innerHTML = `
+                    <div class="cadence-item-heading">${window.TBScoutingExtra.formatRichText(item.heading)}</div>
+                    <div class="cadence-item-body">${window.TBScoutingExtra.formatRichText(item.body)}</div>
+                `;
+                itemsDiv.appendChild(div);
+            });
+            contentDiv.appendChild(itemsDiv);
+
+            if (hasPhotos) {
+                const photoArea = document.createElement('div');
+                photoArea.className = 'cadence-photo-area';
+                photoList.forEach(imgUrl => {
+                    const frame = document.createElement('div');
+                    frame.className = 'cadence-photo-frame';
+                    const img = document.createElement('img');
+                    img.src = imgUrl;
+                    img.alt = 'Cadence Photo';
+                    frame.appendChild(img);
+                    frame.addEventListener('click', () => {
+                        photoModalImg.src = imgUrl;
+                        photoModal.classList.add('open');
+                    });
+                    photoArea.appendChild(frame);
+                });
+                const cap = document.createElement('div');
+                cap.className = 'photo-caption';
+                cap.textContent = '※写真をタップすると拡大表示します';
+                photoArea.appendChild(cap);
+                contentDiv.appendChild(photoArea);
+            }
+
+            pageCard.appendChild(contentDiv);
+            pagesContainer.appendChild(pageCard);
+        });
     }
 
     photoModal.addEventListener('click', () => photoModal.classList.remove('open'));

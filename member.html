@@ -176,12 +176,18 @@ body {
     justify-content: center;
     font-size: 3.1rem;
     font-weight: 500;
-    color: var(--num-blue);
+    color: var(--member-num-color, var(--num-blue));
     line-height: 1;
     letter-spacing: -0.02em;
 }
+.member-num.multi-num {
+    flex-direction: column;
+    font-size: 1.85rem;
+    line-height: 1.05;
+    gap: 3px;
+}
 .member-card.is-alert .member-num {
-    color: var(--num-red);
+    color: var(--num-red) !important;
 }
 .member-info {
     border-top: 1.6px solid #111111;
@@ -285,6 +291,10 @@ body {
         height: 44px;
         font-size: 1.25rem;
     }
+    body.slide-grid-mode .member-num.multi-num {
+        font-size: 0.72rem;
+        gap: 1px;
+    }
     body.slide-grid-mode .member-info {
         padding: 2px 2px;
         min-height: 28px;
@@ -376,10 +386,18 @@ body {
     function createCardElement(card) {
         const wrap = document.createElement('div');
         wrap.className = 'member-card' + (card.alert ? ' is-alert' : '');
+        let numHtml = '';
+        const numStr = String(card.num || '');
+        if (numStr.includes('\n') || numStr.includes(' / ')) {
+            const parts = numStr.includes('\n') ? numStr.split('\n') : numStr.split(' / ');
+            numHtml = `<div class="member-num multi-num"><span>${esc(parts[0].trim())}</span><span>${esc(parts[1].trim())}</span></div>`;
+        } else {
+            numHtml = `<div class="member-num">${esc(numStr)}</div>`;
+        }
         wrap.innerHTML = `
             <div class="member-pos">${esc(card.pos)}</div>
             <div class="member-box">
-                <div class="member-num">${esc(card.num)}</div>
+                ${numHtml}
                 <div class="member-info">
                     <div class="member-name-line">
                         <span>${esc(card.name)}</span><span class="member-note">${esc(card.note || '')}</span>
@@ -392,7 +410,9 @@ body {
     }
 
     function render() {
-        const ml = extraData.memberList;
+        const ml = extraData.memberList || {};
+        const numColor = ml.numColor || '#0432ff';
+        document.documentElement.style.setProperty('--member-num-color', numColor);
         offContainer.innerHTML = '';
         (ml.offRows || []).forEach(row => {
             const rowEl = document.createElement('div');
