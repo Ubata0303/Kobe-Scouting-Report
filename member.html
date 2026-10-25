@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-R66F299BPN"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-R66F299BPN');
+    </script>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Member List - Scouting Report</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+:root {
+    --bg-color: #e5e7eb;
+    --card-bg: #ffffff;
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --accent: #ad181f;
+    --num-blue: #0432ff;
+    --num-red: #ff0000;
+    --line-gray: #d9d9d9;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Meiryo', 'Inter', -apple-system, sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-primary);
+    min-height: 100vh;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-content: flex-start;
+    padding: 2rem;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* Tendency Breaker 共通ナビ */
+.tb-nav {
+    flex-basis: 100%;
+    max-width: 1000px;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin: 0 auto 1rem;
+    font-family: 'Inter', -apple-system, sans-serif;
+}
+.tb-nav a {
+    padding: 8px 14px;
+    border-radius: 8px;
+    text-decoration: none;
+    color: #475569;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+.tb-nav a.active {
+    background: #3b82f6;
+    color: #fff;
+    border-color: #3b82f6;
+}
+
+.app-container {
+    width: 100%;
+    max-width: 1000px;
+    background: var(--card-bg);
+    padding: 2.2rem 2.5rem 2.8rem;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+    border-radius: 4px;
+}
+
+/* 閲覧アプリではMaster用ツールバーを非表示 */
+.master-toolbar {
+    display: none !important;
+}
+
+/* セクション見出し（スライドと同じエンジ色＋グレー太線） */
+.slide-section {
+    margin-bottom: 3rem;
+}
+.slide-section:last-child {
+    margin-bottom: 0.5rem;
+}
+
+.slide-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    padding-bottom: 0.65rem;
+    margin-bottom: 1.5rem;
+    border-bottom: 7px solid var(--line-gray);
+}
+.slide-header h1, .slide-header h2 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--accent) !important;
+    -webkit-text-fill-color: var(--accent) !important;
+    letter-spacing: 0.01em;
+}
+.slide-header sup {
+    font-size: 0.6em;
+    vertical-align: super;
+}
+
+.layout-toggle {
+    display: none;
+    padding: 5px 10px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border-radius: 6px;
+    border: 1px solid #cbd5e1;
+    background: #f8fafc;
+    color: #334155;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.sub-group-title {
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: var(--accent);
+    margin: 1.2rem 0 0.9rem;
+}
+
+/* メンバー行グリッド */
+.member-row {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 14px;
+    margin-bottom: 22px;
+}
+.member-row:last-child {
+    margin-bottom: 0;
+}
+
+/* 選手カード */
+.member-card {
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    min-width: 0;
+}
+.member-pos {
+    text-align: center;
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: #111827;
+    margin-bottom: 4px;
+    min-height: 1.4em;
+    line-height: 1.35;
+}
+.member-box {
+    border: 1.8px solid #111111;
+    background: #ffffff;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+.member-num {
+    height: 108px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 3.1rem;
+    font-weight: 500;
+    color: var(--num-blue);
+    line-height: 1;
+    letter-spacing: -0.02em;
+}
+.member-card.is-alert .member-num {
+    color: var(--num-red);
+}
+.member-info {
+    border-top: 1.6px solid #111111;
+    padding: 5px 6px;
+    min-height: 44px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
+}
+.member-name-line {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #111827;
+    line-height: 1.25;
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+}
+.member-note {
+    color: var(--num-red);
+    font-weight: 700;
+}
+.member-meta-line {
+    font-size: 0.74rem;
+    font-weight: 500;
+    color: #111827;
+    line-height: 1.25;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.edit-controls, .add-card-btn {
+    display: none !important;
+}
+
+/* スマホ表示の最適化 */
+@media (max-width: 700px) {
+    body {
+        padding: 10px !important;
+    }
+    .app-container {
+        padding: 16px 12px 24px !important;
+        border-radius: 8px;
+    }
+    #tb-shared-banner {
+        margin-bottom: 10px !important;
+    }
+    .slide-header {
+        margin-bottom: 1rem;
+        padding-bottom: 0.45rem;
+        border-bottom-width: 5px;
+    }
+    .slide-header h1, .slide-header h2 {
+        font-size: 1.35rem !important;
+    }
+    .sub-group-title {
+        font-size: 1.15rem;
+        margin: 1rem 0 0.65rem;
+    }
+    .layout-toggle {
+        display: inline-block;
+    }
+    /* デフォルトはスマホで見やすい3列カード配置 */
+    .member-row {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+        margin-bottom: 18px;
+    }
+    .member-pos {
+        font-size: 0.95rem;
+        margin-bottom: 3px;
+    }
+    .member-num {
+        height: 78px;
+        font-size: 2.35rem;
+    }
+    .member-info {
+        padding: 5px 5px;
+        min-height: 40px;
+    }
+    .member-name-line {
+        font-size: 0.76rem;
+    }
+    .member-meta-line {
+        font-size: 0.7rem;
+        white-space: normal;
+    }
+
+    /* スライドと同じ7列配置モード */
+    body.slide-grid-mode .member-row {
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+        gap: 4px;
+        margin-bottom: 12px;
+    }
+    body.slide-grid-mode .member-pos {
+        font-size: 0.65rem;
+        margin-bottom: 2px;
+    }
+    body.slide-grid-mode .member-num {
+        height: 44px;
+        font-size: 1.25rem;
+    }
+    body.slide-grid-mode .member-info {
+        padding: 2px 2px;
+        min-height: 28px;
+    }
+    body.slide-grid-mode .member-name-line {
+        font-size: 0.5rem;
+        line-height: 1.15;
+    }
+    body.slide-grid-mode .member-meta-line {
+        font-size: 0.43rem;
+        line-height: 1.2;
+        letter-spacing: -0.02em;
+        white-space: normal;
+        overflow: visible;
+        text-overflow: clip;
+        word-break: normal;
+        overflow-wrap: normal;
+    }
+}
+.meta-part {
+    display: inline-block;
+    white-space: nowrap;
+}
+    </style>
+</head>
+<body class="slide-grid-mode" data-mode="viewer" data-extra-page="true">
+    <nav class="tb-nav">
+        <a href="index.html">Dashboard</a>
+        <a href="passzone.html">Pass Zone</a>
+        <a href="dd.html">Down &amp; Distance</a>
+        <a href="personnel.html">Personnel</a>
+        <a href="formation.html">Formation</a>
+        <a href="play.html">Play Diagram</a>
+        <a href="member.html" class="active">Member List</a>
+        <a href="cadence.html">Cadence</a>
+    </nav>
+
+    <div class="app-container">
+        <!-- OFF Member List -->
+        <section class="slide-section">
+            <div class="slide-header">
+                <h1>OFF Member List</h1>
+                <button type="button" class="layout-toggle" id="layout-toggle-btn">表示: 7列 (スライド)</button>
+            </div>
+            <div id="off-rows-container"></div>
+        </section>
+
+        <!-- 4th Down Member List -->
+        <section class="slide-section">
+            <div class="slide-header">
+                <h2>4<sup>th</sup> Down Member List</h2>
+            </div>
+
+            <div class="sub-group-title">FG Member</div>
+            <div id="fg-row-container" class="member-row"></div>
+
+            <div class="sub-group-title" style="margin-top: 1.8rem;">PC Member</div>
+            <div id="pc-row-container" class="member-row"></div>
+        </section>
+    </div>
+
+    <script src="scouting-extra.js"></script>
+    <script>
+(function () {
+    let extraData = window.TBScoutingExtra.getExtraData();
+
+    const offContainer = document.getElementById('off-rows-container');
+    const fgContainer = document.getElementById('fg-row-container');
+    const pcContainer = document.getElementById('pc-row-container');
+
+    function esc(s) {
+        return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    // 身長/体重などが途中で改行されないよう、「/」や「:」の区切り単位でまとめる
+    function formatMetaHtml(meta) {
+        const s = String(meta ?? '').trim();
+        if (!s) return '';
+        if (/^Position\s*[:：]/i.test(s)) {
+            const m = s.match(/^(Position\s*[:：]\s*)(.*)$/i);
+            if (m) {
+                return `<span class="meta-part">${esc(m[1])}</span><span class="meta-part">${esc(m[2])}</span>`;
+            }
+        }
+        const parts = s.match(/[^/]+\/?/g) || [s];
+        return parts.map(p => `<span class="meta-part">${esc(p)}</span>`).join('');
+    }
+
+    function createCardElement(card) {
+        const wrap = document.createElement('div');
+        wrap.className = 'member-card' + (card.alert ? ' is-alert' : '');
+        wrap.innerHTML = `
+            <div class="member-pos">${esc(card.pos)}</div>
+            <div class="member-box">
+                <div class="member-num">${esc(card.num)}</div>
+                <div class="member-info">
+                    <div class="member-name-line">
+                        <span>${esc(card.name)}</span><span class="member-note">${esc(card.note || '')}</span>
+                    </div>
+                    <div class="member-meta-line">${formatMetaHtml(card.meta)}</div>
+                </div>
+            </div>
+        `;
+        return wrap;
+    }
+
+    function render() {
+        const ml = extraData.memberList;
+        offContainer.innerHTML = '';
+        (ml.offRows || []).forEach(row => {
+            const rowEl = document.createElement('div');
+            rowEl.className = 'member-row';
+            row.forEach(card => rowEl.appendChild(createCardElement(card)));
+            offContainer.appendChild(rowEl);
+        });
+
+        fgContainer.innerHTML = '';
+        (ml.fgMembers || []).forEach(card => fgContainer.appendChild(createCardElement(card)));
+
+        pcContainer.innerHTML = '';
+        (ml.pcMembers || []).forEach(card => pcContainer.appendChild(createCardElement(card)));
+    }
+
+    const layoutBtn = document.getElementById('layout-toggle-btn');
+    if (layoutBtn) {
+        layoutBtn.addEventListener('click', () => {
+            const isSlide = document.body.classList.toggle('slide-grid-mode');
+            layoutBtn.textContent = isSlide ? '表示: 7列 (スライド)' : '表示: 3列 (拡大)';
+        });
+    }
+
+    window.addEventListener('tb-extra-published', e => {
+        extraData = window.TBScoutingExtra.getExtraData(e.detail);
+        render();
+    });
+
+    render();
+})();
+    </script>
+    <script src="menu.js"></script>
+    <script src="secure-data.js"></script>
+    <script src="shared-data.js"></script>
+</body>
+</html>

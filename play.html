@@ -1,0 +1,1033 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-R66F299BPN"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-R66F299BPN');
+    </script>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Play Diagram - Scouting Report</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+:root {
+    --bg-color: #f1f5f9;
+    --card-bg: #ffffff;
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --text-muted: #94a3b8;
+    --accent-blue: #2563eb;
+    --accent-red: #dc2626;
+    --border-color: #e2e8f0;
+    --border-dark: #cbd5e1;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Meiryo', 'Inter', -apple-system, sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-primary);
+    min-height: 100vh;
+    padding: 1rem 0.75rem 3rem;
+    -webkit-font-smoothing: antialiased;
+}
+
+.container {
+    max-width: 1100px;
+    margin: 0 auto;
+}
+
+/* フィルターバー（Sticky） */
+.filter-card {
+    background: var(--card-bg);
+    border-radius: 14px;
+    padding: 0.85rem 1rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    border: 1px solid var(--border-color);
+    margin-bottom: 1rem;
+    position: sticky;
+    top: 56px;
+    z-index: 100;
+}
+.filter-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 8px;
+    align-items: center;
+}
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+.filter-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+.filter-select {
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background: #fff;
+    color: var(--text-primary);
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    outline: none;
+    transition: border-color 0.15s;
+    width: 100%;
+}
+.filter-select:focus {
+    border-color: var(--accent-blue);
+}
+.filter-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 8px;
+    padding-top: 6px;
+    border-top: 1px solid #f1f5f9;
+}
+.count-badge {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+}
+.count-badge b {
+    color: var(--accent-blue);
+    font-size: 0.95rem;
+}
+.reset-btn {
+    background: none;
+    border: 1px solid var(--border-color);
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    font-weight: 600;
+    cursor: pointer;
+}
+.reset-btn:active {
+    background: #f8fafc;
+}
+
+/* プレーカード一覧（バーチャルスクロール対応） */
+.play-grid {
+    position: relative;
+    width: 100%;
+    min-height: 220px;
+}
+
+.play-card {
+    position: absolute;
+    background: var(--card-bg);
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    cursor: pointer;
+    box-sizing: border-box;
+}
+.play-card:active {
+    transform: scale(0.99);
+}
+.play-card-head {
+    padding: 8px 12px;
+    background: #f8fafc;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    flex-wrap: wrap;
+    flex-shrink: 0;
+}
+.play-badge-group {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex-wrap: wrap;
+}
+.badge-game {
+    background: #ecfdf5;
+    color: #047857;
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 5px;
+    border: 1px solid #a7f3d0;
+}
+.badge-num {
+    background: var(--accent-blue);
+    color: #fff;
+    font-size: 0.75rem;
+    font-weight: 800;
+    padding: 2px 6px;
+    border-radius: 5px;
+}
+.badge-dd {
+    background: #fee2e2;
+    color: var(--accent-red);
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 5px;
+    border: 1px solid #fecaca;
+}
+.badge-form {
+    background: #e2e8f0;
+    color: #334155;
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 5px;
+}
+.play-title-main {
+    font-size: 0.92rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    word-break: break-word;
+}
+.play-card-body {
+    padding: 6px 8px;
+    background: #ffffff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+}
+.play-card-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    border-radius: 4px;
+    background: #fff;
+}
+.play-card-footer {
+    padding: 4px 12px;
+    background: #fafafa;
+    border-top: 1px solid #f1f5f9;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    height: 28px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    overflow: hidden;
+    white-space: nowrap;
+}
+.notes-tag {
+    background: #fff1f2;
+    color: #be123c;
+    border: 1px solid #ffe4e6;
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 600;
+}
+
+/* 空状態メッセージ */
+.empty-msg {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 3rem 1rem;
+    background: #fff;
+    border-radius: 12px;
+    border: 1px dashed var(--border-dark);
+    color: var(--text-muted);
+}
+.empty-msg h3 {
+    font-size: 1.05rem;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+}
+
+/* 全画面拡大モーダル */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.9);
+    backdrop-filter: blur(4px);
+    z-index: 4000;
+    display: none;
+    flex-direction: column;
+    padding: 10px;
+    box-sizing: border-box;
+}
+.modal-overlay.active {
+    display: flex;
+}
+.modal-top-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: #fff;
+    padding: 8px 10px;
+    flex-shrink: 0;
+}
+.modal-play-info {
+    font-size: 0.92rem;
+    font-weight: 700;
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+.modal-close-btn {
+    background: rgba(255, 255, 255, 0.15);
+    border: none;
+    color: #fff;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    font-size: 1.4rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.modal-close-btn:active {
+    background: rgba(255, 255, 255, 0.35);
+}
+.modal-img-container {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+    padding: 6px 0;
+}
+.modal-img {
+    max-width: 98vw;
+    max-height: 82vh;
+    object-fit: contain;
+    background: #fff;
+    border-radius: 6px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    user-select: none;
+}
+.modal-nav-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(0, 0, 0, 0.55);
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    width: 42px;
+    height: 56px;
+    border-radius: 8px;
+    font-size: 1.7rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.modal-nav-btn:active {
+    background: rgba(0, 0, 0, 0.85);
+}
+.modal-nav-btn.prev {
+    left: 8px;
+}
+.modal-nav-btn.next {
+    right: 8px;
+}
+.modal-bottom-bar {
+    padding: 6px 10px;
+    color: #cbd5e1;
+    font-size: 0.8rem;
+    text-align: center;
+    flex-shrink: 0;
+}
+    </style>
+</head>
+<body data-mode="viewer" data-extra-page="true">
+    <div class="container">
+        <!-- 絞り込みフィルター -->
+        <div class="filter-card">
+            <div class="filter-grid">
+                <div class="filter-group">
+                    <label class="filter-label" for="filter-game">試合 (Game)</label>
+                    <select id="filter-game" class="filter-select">
+                        <option value="ALL">全試合 (ALL)</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label class="filter-label" for="filter-play">Play名</label>
+                    <select id="filter-play" class="filter-select">
+                        <option value="ALL">すべて (ALL)</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label class="filter-label" for="filter-formation">体型 (Formation)</label>
+                    <select id="filter-formation" class="filter-select">
+                        <option value="ALL">すべて (ALL)</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label class="filter-label" for="filter-down">Down</label>
+                    <select id="filter-down" class="filter-select">
+                        <option value="ALL">すべて (ALL)</option>
+                        <option value="1">1st Down</option>
+                        <option value="2">2nd Down</option>
+                        <option value="3">3rd Down</option>
+                        <option value="4">4th Down</option>
+                    </select>
+                </div>
+            </div>
+            <div class="filter-meta">
+                <span class="count-badge" id="count-badge">表示中: <b>0</b> / 0 プレー</span>
+                <button type="button" class="reset-btn" id="reset-filter-btn">✕ 解除</button>
+            </div>
+        </div>
+
+        <!-- プレーカード一覧（初期表示はインポート順） -->
+        <div class="play-grid" id="play-grid"></div>
+    </div>
+
+    <!-- 全画面拡大モーダル -->
+    <div class="modal-overlay" id="modal-overlay">
+        <div class="modal-top-bar">
+            <div class="modal-play-info" id="modal-play-info">#1 1-10 DRAW PAP</div>
+            <button type="button" class="modal-close-btn" id="modal-close-btn" aria-label="閉じる">×</button>
+        </div>
+        <div class="modal-img-container">
+            <button type="button" class="modal-nav-btn prev" id="modal-prev-btn" aria-label="前へ">‹</button>
+            <img src="" alt="Play Diagram" class="modal-img" id="modal-img">
+            <button type="button" class="modal-nav-btn next" id="modal-next-btn" aria-label="次へ">›</button>
+        </div>
+        <div class="modal-bottom-bar" id="modal-bottom-bar">1 / 59 プレー</div>
+    </div>
+
+    <script src="scouting-extra.js"></script>
+    <script>
+(function () {
+    const filterGame = document.getElementById('filter-game');
+    const filterPlay = document.getElementById('filter-play');
+    const filterFormation = document.getElementById('filter-formation');
+    const filterDown = document.getElementById('filter-down');
+    const resetFilterBtn = document.getElementById('reset-filter-btn');
+    const countBadge = document.getElementById('count-badge');
+    const playGrid = document.getElementById('play-grid');
+
+    const modalOverlay = document.getElementById('modal-overlay');
+    const modalImg = document.getElementById('modal-img');
+    const modalPlayInfo = document.getElementById('modal-play-info');
+    const modalBottomBar = document.getElementById('modal-bottom-bar');
+    const modalCloseBtn = document.getElementById('modal-close-btn');
+    const modalPrevBtn = document.getElementById('modal-prev-btn');
+    const modalNextBtn = document.getElementById('modal-next-btn');
+
+    let allDiagrams = [];
+    let filteredDiagrams = [];
+    let currentModalIndex = 0;
+
+    function initData(customExtra) {
+        const extra = window.TBScoutingExtra.getExtraData(customExtra);
+        allDiagrams = Array.isArray(extra.playDiagrams) ? extra.playDiagrams : [];
+        populateFilterOptions();
+        applyFilters();
+    }
+
+    function populateFilterOptions() {
+        const gameCounts = {};
+        const playCounts = {};
+        const formationCounts = {};
+
+        allDiagrams.forEach(d => {
+            const g = (d.gameName || '').trim();
+            if (g) gameCounts[g] = (gameCounts[g] || 0) + 1;
+
+            const p = (d.playName || '').trim();
+            if (p) playCounts[p] = (playCounts[p] || 0) + 1;
+
+            const f = (d.formation || '').trim();
+            if (f) formationCounts[f] = (formationCounts[f] || 0) + 1;
+        });
+
+        // 試合名の選択肢
+        const prevGameVal = filterGame.value;
+        filterGame.innerHTML = '<option value="ALL">全試合 (ALL)</option>';
+        Object.keys(gameCounts).sort().forEach(g => {
+            const opt = document.createElement('option');
+            opt.value = g;
+            opt.textContent = `${g} (${gameCounts[g]})`;
+            filterGame.appendChild(opt);
+        });
+        if (gameCounts[prevGameVal]) filterGame.value = prevGameVal;
+
+        const prevPlayVal = filterPlay.value;
+        filterPlay.innerHTML = '<option value="ALL">すべて (ALL)</option>';
+        Object.keys(playCounts).sort().forEach(p => {
+            const opt = document.createElement('option');
+            opt.value = p;
+            opt.textContent = `${p} (${playCounts[p]})`;
+            filterPlay.appendChild(opt);
+        });
+        if (playCounts[prevPlayVal]) filterPlay.value = prevPlayVal;
+
+        const prevFormVal = filterFormation.value;
+        filterFormation.innerHTML = '<option value="ALL">すべて (ALL)</option>';
+        Object.keys(formationCounts).sort().forEach(f => {
+            const opt = document.createElement('option');
+            opt.value = f;
+            opt.textContent = `${f} (${formationCounts[f]})`;
+            filterFormation.appendChild(opt);
+        });
+        if (formationCounts[prevFormVal]) filterFormation.value = prevFormVal;
+    }
+
+    // 絞り込み実行（初期表示はインポート順のまま！）
+    function applyFilters() {
+        const selGame = filterGame.value;
+        const selPlay = filterPlay.value;
+        const selForm = filterFormation.value;
+        const selDown = filterDown.value;
+
+        filteredDiagrams = allDiagrams.filter(d => {
+            if (selGame !== 'ALL' && d.gameName !== selGame) return false;
+            if (selPlay !== 'ALL' && d.playName !== selPlay) return false;
+            if (selForm !== 'ALL' && d.formation !== selForm) return false;
+            if (selDown !== 'ALL' && String(d.down) !== String(selDown)) return false;
+            return true;
+        });
+
+        renderGrid();
+    }
+
+    // ---------- バーチャルスクロール（Virtual Scroll）＆ 画像メモリ自動解放 ＆ 図面サイズ統一 ----------
+    // 画面に見えている数枚だけをDOMに配置し、画面外にスクロールしたカードは
+    // 即座にDOMから削除＆デコード済み画像メモリ(GPU/RAM)を破棄する。
+    // また、余白が大きいPDF図面（#43など）も自動的に余白をトリミングして下のPDF（#44）と同じ大きさに揃える。
+    const EMPTY_GIF = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+    const mountedCards = new Map(); // index -> { el, img, objUrl, timer }
+    let vsCols = 1;
+    let vsColWidth = 320;
+    let vsBodyHeight = 250;
+    let vsGap = 16;
+    let rowHeights = [];
+    let rowTops = [];
+    let totalGridHeight = 220;
+    let vsRafId = null;
+    let modalObjUrl = null;
+
+    // Base64データURLをバイナリBlobに変換し、巨大なBase64文字列をメモリから即解放
+    function getDiagramBlob(d) {
+        if (!d) return null;
+        if (d._blob) return d._blob;
+        if (!d.image) return null;
+        try {
+            const parts = d.image.split(',');
+            const b64 = parts.length > 1 ? parts[1] : parts[0];
+            const bin = atob(b64);
+            const len = bin.length;
+            const bytes = new Uint8Array(len);
+            for (let i = 0; i < len; i++) bytes[i] = bin.charCodeAt(i);
+            d._blob = new Blob([bytes], { type: 'image/jpeg' });
+            // 部員用(Viewer)では書き出し不要なため、UTF-16の巨大なBase64文字列をヒープから即破棄
+            d.image = null;
+            return d._blob;
+        } catch (_) {
+            return null;
+        }
+    }
+
+    // 余白が大きくて小さく見えるPDF図面を検出し、下のPDF（標準サイズ）と同じ余白比率に自動トリミングする
+    function normalizeDiagramImageIfNeeded(img, d, onUpdatedUrl) {
+        if (!d || d._cropChecked || d.cropNormalized) return;
+        d._cropChecked = true;
+        const sw = img.naturalWidth || img.width;
+        const sh = img.naturalHeight || img.height;
+        if (!sw || !sh) return;
+
+        try {
+            const tmp = document.createElement('canvas');
+            tmp.width = sw;
+            tmp.height = sh;
+            const tctx = tmp.getContext('2d', { willReadFrequently: true });
+            tctx.fillStyle = '#ffffff';
+            tctx.fillRect(0, 0, sw, sh);
+            tctx.drawImage(img, 0, 0, sw, sh);
+
+            const imgData = tctx.getImageData(0, 0, sw, sh).data;
+            let minX = sw, maxX = 0, minY = sh, maxY = 0;
+
+            for (let y = 0; y < sh; y++) {
+                let dark = 0;
+                const rowOff = y * sw * 4;
+                for (let x = 0; x < sw; x += 2) {
+                    const i = rowOff + x * 4;
+                    if (imgData[i] < 215 || imgData[i + 1] < 215 || imgData[i + 2] < 215) {
+                        dark++;
+                        if (dark >= 3) break;
+                    }
+                }
+                if (dark >= 3) {
+                    if (y < minY) minY = y;
+                    if (y > maxY) maxY = y;
+                }
+            }
+
+            for (let x = 0; x < sw; x++) {
+                let dark = 0;
+                for (let y = minY; y <= maxY; y += 2) {
+                    const i = (y * sw + x) * 4;
+                    if (imgData[i] < 215 || imgData[i + 1] < 215 || imgData[i + 2] < 215) {
+                        dark++;
+                        if (dark >= 3) break;
+                    }
+                }
+                if (dark >= 3) {
+                    if (x < minX) minX = x;
+                    if (x > maxX) maxX = x;
+                }
+            }
+
+            const bw = maxX - minX;
+            const bh = maxY - minY;
+            if (bw < sw * 0.2 || bh < sh * 0.2) return;
+
+            // 既に横幅90%以上使っている標準サイズの図面ならそのまま
+            if (bw >= sw * 0.89 && bh >= sh * 0.86) return;
+
+            const padX = Math.round(bw * 0.036);
+            const padY = Math.round(bh * 0.028);
+            const cropX = Math.max(0, minX - padX);
+            const cropY = Math.max(0, minY - padY);
+            const cropW = Math.min(sw - cropX, bw + padX * 2);
+            const cropH = Math.min(sh - cropY, bh + padY * 2);
+
+            const out = document.createElement('canvas');
+            out.width = 680;
+            out.height = Math.round(680 * (cropH / cropW));
+            const octx = out.getContext('2d');
+            octx.fillStyle = '#ffffff';
+            octx.fillRect(0, 0, out.width, out.height);
+            octx.drawImage(tmp, cropX, cropY, cropW, cropH, 0, 0, out.width, out.height);
+
+            out.toBlob(blob => {
+                if (!blob) return;
+                d._blob = blob;
+                if (typeof onUpdatedUrl === 'function') {
+                    onUpdatedUrl(blob);
+                }
+            }, 'image/jpeg', 0.52);
+        } catch (_) {}
+    }
+
+    function estimateCardHeight(d) {
+        const badgeChars = (d.gameName || '').length + String(d.playNum || d.page || '').length + (d.downDist || '').length + (d.formation || '').length + 10;
+        const titleChars = (d.playName || 'PLAY').length;
+        const totalLinePx = badgeChars * 7.5 + titleChars * 9.5 + 36;
+        const availW = Math.max(200, vsColWidth - 24);
+        const lines = Math.max(1, Math.ceil(totalLinePx / availW));
+        const headH = 18 + lines * 25;
+        const footH = d.notes ? 28 : 0;
+        return headH + vsBodyHeight + footH + 2;
+    }
+
+    function recomputeRowTops() {
+        const totalRows = rowHeights.length;
+        rowTops = new Array(totalRows);
+        let y = 0;
+        for (let r = 0; r < totalRows; r++) {
+            rowTops[r] = y;
+            y += rowHeights[r] + vsGap;
+        }
+        totalGridHeight = Math.max(220, y - (totalRows > 0 ? vsGap : 0));
+        playGrid.style.height = totalGridHeight + 'px';
+    }
+
+    function computeLayoutMetrics() {
+        const w = playGrid.clientWidth || Math.min(window.innerWidth - 32, 1100);
+        if (window.innerWidth <= 640) {
+            vsCols = 1;
+            vsGap = 14;
+            vsColWidth = w;
+        } else {
+            vsGap = 18;
+            vsCols = Math.max(1, Math.floor((w + vsGap) / (320 + vsGap)));
+            vsColWidth = Math.floor((w - vsGap * (vsCols - 1)) / vsCols);
+        }
+        // すべてのカードで図面表示エリア（.play-card-body）の高さを下のPDF（#44）と同じ比率で完全固定
+        vsBodyHeight = Math.round((vsColWidth - 16) * 0.76) + 12;
+
+        const totalRows = Math.ceil(filteredDiagrams.length / vsCols);
+        rowHeights = new Array(totalRows);
+        for (let r = 0; r < totalRows; r++) {
+            let maxH = 0;
+            for (let c = 0; c < vsCols; c++) {
+                const idx = r * vsCols + c;
+                if (idx < filteredDiagrams.length) {
+                    const h = estimateCardHeight(filteredDiagrams[idx]);
+                    if (h > maxH) maxH = h;
+                }
+            }
+            rowHeights[r] = maxH || (vsBodyHeight + 60);
+        }
+        recomputeRowTops();
+    }
+
+    function unmountCard(idx) {
+        const entry = mountedCards.get(idx);
+        if (!entry) return;
+        if (entry.timer) {
+            clearTimeout(entry.timer);
+            entry.timer = null;
+        }
+        if (entry.img) {
+            entry.img.onload = null;
+            entry.img.onerror = null;
+            // WebKit/Safariのデコード済み画像キャッシュ(VRAM/RAM)を即座に解放
+            entry.img.src = EMPTY_GIF;
+            entry.img.remove();
+            entry.img = null;
+        }
+        if (entry.objUrl) {
+            try { URL.revokeObjectURL(entry.objUrl); } catch (_) {}
+            entry.objUrl = null;
+        }
+        if (entry.el && entry.el.parentNode) {
+            entry.el.remove();
+        }
+        mountedCards.delete(idx);
+    }
+
+    function clearAllMountedCards() {
+        for (const idx of Array.from(mountedCards.keys())) {
+            unmountCard(idx);
+        }
+    }
+
+    function mountCard(idx) {
+        if (mountedCards.has(idx)) return;
+        const d = filteredDiagrams[idx];
+        if (!d) return;
+
+        const row = Math.floor(idx / vsCols);
+        const col = idx % vsCols;
+        const top = rowTops[row] || 0;
+        const left = col * (vsColWidth + vsGap);
+
+        const card = document.createElement('div');
+        card.className = 'play-card';
+        card.style.top = top + 'px';
+        card.style.left = left + 'px';
+        card.style.width = vsColWidth + 'px';
+
+        const gameBadge = d.gameName ? `<span class="badge-game">${esc(d.gameName)}</span>` : '';
+        const numText = d.playNum ? `#${d.playNum}` : (d.page ? `P.${d.page}` : '');
+        const ddText = d.downDist || '';
+        const formText = d.formation || '';
+        const playText = d.playName || 'PLAY';
+        const notesText = d.notes ? `<span class="notes-tag">💬 ${esc(d.notes)}</span>` : '';
+
+        card.innerHTML = `
+            <div class="play-card-head">
+                <div class="play-badge-group">
+                    ${gameBadge}
+                    ${numText ? `<span class="badge-num">${esc(numText)}</span>` : ''}
+                    ${ddText ? `<span class="badge-dd">${esc(ddText)}</span>` : ''}
+                    ${formText ? `<span class="badge-form">${esc(formText)}</span>` : ''}
+                </div>
+                <div class="play-title-main">${esc(playText)}</div>
+            </div>
+            <div class="play-card-body" style="height:${vsBodyHeight}px;flex:0 0 ${vsBodyHeight}px;"></div>
+            ${notesText ? `<div class="play-card-footer">${notesText}</div>` : ''}
+        `;
+
+        card.addEventListener('click', () => openModal(idx));
+        playGrid.appendChild(card);
+
+        const entry = { el: card, img: null, objUrl: null, timer: null, row };
+        mountedCards.set(idx, entry);
+
+        // 高速スクロール中に通過するだけの画像をデコードしないよう、微小ディレイ後に見えているカードだけ画像生成
+        entry.timer = setTimeout(() => {
+            entry.timer = null;
+            if (!mountedCards.has(idx)) return;
+            const bodyEl = card.querySelector('.play-card-body');
+            if (!bodyEl) return;
+
+            const img = document.createElement('img');
+            img.className = 'play-card-img';
+            img.alt = playText;
+            img.decoding = 'async';
+
+            img.onload = () => {
+                if (!mountedCards.has(idx)) return;
+                normalizeDiagramImageIfNeeded(img, d, newBlob => {
+                    if (!mountedCards.has(idx) || !entry.img) return;
+                    if (entry.objUrl) {
+                        try { URL.revokeObjectURL(entry.objUrl); } catch (_) {}
+                    }
+                    const newUrl = URL.createObjectURL(newBlob);
+                    entry.objUrl = newUrl;
+                    entry.img.onload = null;
+                    entry.img.src = newUrl;
+                });
+            };
+
+            const blob = getDiagramBlob(d);
+            if (blob) {
+                const objUrl = URL.createObjectURL(blob);
+                entry.objUrl = objUrl;
+                img.src = objUrl;
+            } else if (d.image) {
+                img.src = d.image;
+            }
+            entry.img = img;
+            bodyEl.appendChild(img);
+        }, 25);
+    }
+
+    function syncMountedRowHeights() {
+        let changed = false;
+        const rowMax = new Map();
+        for (const [, entry] of mountedCards.entries()) {
+            const h = entry.el.offsetHeight;
+            if (h > 0) {
+                const prev = rowMax.get(entry.row) || 0;
+                if (h > prev) rowMax.set(entry.row, h);
+            }
+        }
+        for (const [r, h] of rowMax.entries()) {
+            if (Math.abs((rowHeights[r] || 0) - h) > 1) {
+                rowHeights[r] = h;
+                changed = true;
+            }
+        }
+        if (changed) {
+            recomputeRowTops();
+            for (const [, entry] of mountedCards.entries()) {
+                entry.el.style.top = (rowTops[entry.row] || 0) + 'px';
+            }
+        }
+    }
+
+    function updateVirtualScroll() {
+        vsRafId = null;
+        if (filteredDiagrams.length === 0) return;
+
+        const totalRows = rowHeights.length;
+        if (totalRows === 0) return;
+        const rect = playGrid.getBoundingClientRect();
+        const viewH = window.innerHeight || document.documentElement.clientHeight;
+
+        // グリッド内での現在の表示Y範囲を計算（上下1行分だけバッファを持たせる）
+        const visibleTop = Math.max(0, -rect.top);
+        const visibleBottom = Math.max(0, viewH - rect.top);
+
+        let startRow = 0;
+        while (startRow < totalRows - 1 && (rowTops[startRow] + rowHeights[startRow]) < visibleTop) {
+            startRow++;
+        }
+        startRow = Math.max(0, startRow - 1);
+
+        let endRow = startRow;
+        while (endRow < totalRows - 1 && rowTops[endRow] < visibleBottom) {
+            endRow++;
+        }
+        endRow = Math.min(totalRows - 1, endRow + 1);
+
+        const startIndex = startRow * vsCols;
+        const endIndex = Math.min(filteredDiagrams.length, (endRow + 1) * vsCols);
+
+        // 1. 画面外に出たカードをDOMとメモリから即座に削除
+        for (const idx of Array.from(mountedCards.keys())) {
+            if (idx < startIndex || idx >= endIndex) {
+                unmountCard(idx);
+            }
+        }
+
+        // 2. 画面内に入ったカードだけをレンダリング
+        let newlyMounted = false;
+        for (let idx = startIndex; idx < endIndex; idx++) {
+            if (!mountedCards.has(idx)) {
+                mountCard(idx);
+                newlyMounted = true;
+            }
+        }
+        if (newlyMounted) {
+            syncMountedRowHeights();
+        }
+    }
+
+    function scheduleVirtualUpdate() {
+        if (vsRafId !== null) return;
+        vsRafId = requestAnimationFrame(updateVirtualScroll);
+    }
+
+    window.addEventListener('scroll', scheduleVirtualUpdate, { passive: true });
+    window.addEventListener('resize', () => {
+        if (filteredDiagrams.length === 0) return;
+        clearAllMountedCards();
+        computeLayoutMetrics();
+        updateVirtualScroll();
+    });
+
+    function renderGrid() {
+        countBadge.innerHTML = `表示中: <b>${filteredDiagrams.length}</b> / ${allDiagrams.length} プレー`;
+
+        clearAllMountedCards();
+
+        if (filteredDiagrams.length === 0) {
+            playGrid.style.height = 'auto';
+            playGrid.innerHTML = `
+                <div class="empty-msg">
+                    <h3>該当するプレー図面がありません</h3>
+                    <p>フィルター条件を変更してください。</p>
+                </div>
+            `;
+            return;
+        }
+
+        playGrid.innerHTML = '';
+        computeLayoutMetrics();
+        updateVirtualScroll();
+    }
+
+    function esc(s) {
+        return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    function revokeModalUrl() {
+        if (modalObjUrl) {
+            try { URL.revokeObjectURL(modalObjUrl); } catch (_) {}
+            modalObjUrl = null;
+        }
+    }
+
+    function openModal(index) {
+        if (!filteredDiagrams[index]) return;
+        currentModalIndex = index;
+        updateModalContent();
+        modalOverlay.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeModal() {
+        modalOverlay.classList.remove('active');
+        document.body.style.overflow = '';
+        modalImg.src = EMPTY_GIF;
+        revokeModalUrl();
+    }
+
+    function updateModalContent() {
+        const d = filteredDiagrams[currentModalIndex];
+        if (!d) return;
+
+        revokeModalUrl();
+        const blob = getDiagramBlob(d);
+        if (blob) {
+            modalObjUrl = URL.createObjectURL(blob);
+            modalImg.src = modalObjUrl;
+        } else {
+            modalImg.src = d.image || '';
+        }
+
+        const numText = d.playNum ? `#${d.playNum}` : `P.${d.page}`;
+        modalPlayInfo.innerHTML = `
+            ${d.gameName ? `<span style="color:#6ee7b7;font-size:0.8rem;">[${esc(d.gameName)}]</span>` : ''}
+            <span style="color:#60a5fa;font-weight:800;">${esc(numText)}</span>
+            ${d.downDist ? `<span style="color:#f87171;">${esc(d.downDist)}</span>` : ''}
+            ${d.formation ? `<span style="color:#cbd5e1;">${esc(d.formation)}</span>` : ''}
+            <span style="color:#fff;font-size:1.05rem;font-weight:800;">${esc(d.playName)}</span>
+        `;
+        modalBottomBar.textContent = `${currentModalIndex + 1} / ${filteredDiagrams.length} プレー ${d.notes ? '｜ ' + d.notes : ''}`;
+    }
+
+    function prevModal() {
+        if (currentModalIndex > 0) {
+            currentModalIndex--;
+            updateModalContent();
+        } else {
+            currentModalIndex = filteredDiagrams.length - 1;
+            updateModalContent();
+        }
+    }
+
+    function nextModal() {
+        if (currentModalIndex < filteredDiagrams.length - 1) {
+            currentModalIndex++;
+            updateModalContent();
+        } else {
+            currentModalIndex = 0;
+            updateModalContent();
+        }
+    }
+
+    filterGame.addEventListener('change', applyFilters);
+    filterPlay.addEventListener('change', applyFilters);
+    filterFormation.addEventListener('change', applyFilters);
+    filterDown.addEventListener('change', applyFilters);
+    resetFilterBtn.addEventListener('click', () => {
+        filterGame.value = 'ALL';
+        filterPlay.value = 'ALL';
+        filterFormation.value = 'ALL';
+        filterDown.value = 'ALL';
+        applyFilters();
+    });
+
+    modalCloseBtn.addEventListener('click', closeModal);
+    modalPrevBtn.addEventListener('click', prevModal);
+    modalNextBtn.addEventListener('click', nextModal);
+    modalOverlay.addEventListener('click', e => {
+        if (e.target === modalOverlay || e.target.classList.contains('modal-img-container')) {
+            closeModal();
+        }
+    });
+
+    document.addEventListener('keydown', e => {
+        if (!modalOverlay.classList.contains('active')) return;
+        if (e.key === 'Escape') closeModal();
+        if (e.key === 'ArrowLeft') prevModal();
+        if (e.key === 'ArrowRight') nextModal();
+    });
+
+    let touchStartX = 0;
+    let touchEndX = 0;
+    modalOverlay.addEventListener('touchstart', e => {
+        touchStartX = e.changedTouches[0].screenX;
+    }, { passive: true });
+    modalOverlay.addEventListener('touchend', e => {
+        touchEndX = e.changedTouches[0].screenX;
+        const diff = touchEndX - touchStartX;
+        if (Math.abs(diff) > 40) {
+            if (diff > 0) prevModal();
+            else nextModal();
+        }
+    }, { passive: true });
+
+    // 公開データ（data.json）が復号されたときのイベント
+    window.addEventListener('tb-extra-published', e => {
+        initData(e.detail);
+    });
+
+    initData();
+})();
+    </script>
+    <script src="menu.js"></script>
+    <script src="secure-data.js"></script>
+    <script src="shared-data.js"></script>
+</body>
+</html>

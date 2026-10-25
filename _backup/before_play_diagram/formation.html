@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Formation Tendency</title>
+    <!-- Google Fonts for modern typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- SheetJS for Excel processing -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+    <!-- html2canvas for image generation -->
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <style>
+:root {
+    --bg-color: #f4f7f6;
+    --table-bg: #ffffff;
+    --border-color: #a4b5c4;
+    --header-bg: #8ba0b5;
+    --header-text: #ffffff;
+    --text-primary: #333333;
+    --text-secondary: #666666;
+    --accent-color: #3b82f6;
+    --accent-hover: #2563eb;
+    
+    /* Play Type Colors */
+    --color-pass: #3b82f6; /* Blue */
+    --color-run: #ef4444;  /* Red */
+    --color-rpo: #f59e0b;  /* Orange/Yellow */
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-primary);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    padding: 2rem;
+}
+
+.app-container {
+    width: 100%;
+    max-width: 1200px;
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+.app-header {
+    text-align: center;
+    padding: 1rem 0;
+}
+
+.app-header h1 {
+    font-size: 2.2rem;
+    font-weight: 700;
+    color: #2c3e50;
+    margin-bottom: 0.5rem;
+}
+
+.app-header p {
+    color: var(--text-secondary);
+    font-size: 1rem;
+}
+
+/* Upload Section */
+.upload-area {
+    background: var(--table-bg);
+    border: 2px dashed var(--header-bg);
+    border-radius: 12px;
+    padding: 3rem 2rem;
+    text-align: center;
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.upload-area.dragover {
+    border-color: var(--accent-color);
+    background: #f0f7ff;
+}
+
+.upload-icon {
+    color: var(--header-bg);
+    margin-bottom: 0.5rem;
+}
+
+.upload-area h2 {
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+input[type="file"] {
+    display: none;
+}
+
+.custom-file-upload {
+    background-color: var(--accent-color);
+    color: white;
+    padding: 0.75rem 2rem;
+    border-radius: 6px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    display: inline-block;
+}
+
+.custom-file-upload:hover {
+    background-color: var(--accent-hover);
+}
+
+/* Table Section */
+.result-section {
+    animation: fadeIn 0.4s ease-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.result-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.result-header h2 {
+    font-size: 1.25rem;
+    color: #2c3e50;
+}
+
+.clear-btn {
+    background-color: #f1f5f9;
+    color: #475569;
+    border: 1px solid #cbd5e1;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.clear-btn:hover {
+    background-color: #e2e8f0;
+    color: #1e293b;
+}
+
+.table-container {
+    background: var(--table-bg);
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+    border: 1px solid var(--border-color);
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: center;
+    table-layout: fixed;
+}
+
+thead {
+    background: var(--header-bg);
+}
+
+th, td {
+    padding: 0.25rem 0.4rem;
+    border: 1px solid var(--border-color);
+    font-size: 0.8rem;
+    line-height: 1.25;
+}
+
+th {
+    font-weight: 600;
+    color: var(--header-text);
+    padding: 0.5rem 0.6rem;
+    font-size: 0.95rem;
+}
+
+/* Specific alignments and styles based on the image */
+.formation-cell {
+    font-weight: 600;
+    text-align: left;
+    background-color: #fafbfc;
+}
+
+.ratio-cell {
+    font-weight: 600;
+}
+
+.ratio-count {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    font-weight: normal;
+    margin-top: 0;
+}
+
+.play-type-pass { color: var(--color-pass); font-weight: 700; }
+.play-type-run { color: var(--color-run); font-weight: 700; }
+.play-type-rpo { color: var(--color-rpo); font-weight: 700; }
+
+.percentage-cell {
+    font-weight: 600;
+}
+
+.plays-list {
+    text-align: left;
+    color: var(--text-primary);
+}
+
+.play-count {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+}
+
+/* Capture Button */
+.capture-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background-color: #f1f5f9;
+    color: #475569;
+    border: 1px solid #cbd5e1;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.75rem;
+    font-weight: 500;
+    margin-top: 8px;
+    transition: all 0.2s;
+}
+
+.capture-btn:hover {
+    background-color: #3b82f6;
+    color: white;
+    border-color: #3b82f6;
+}
+
+.highlight-bold {
+    color: #000000 !important;
+    font-weight: 800 !important;
+}
+
+.highlight-red {
+    color: #dc2626 !important;
+    font-weight: 800 !important;
+}
+
+.bg-highlight-pass {
+    background-color: #bde0ff !important;
+}
+.bg-highlight-run {
+    background-color: #ff9c9c !important;
+}
+.bg-highlight-rpo {
+    background-color: #fcdab0 !important;
+}
+
+.formation-start td {
+    border-top: 2px solid #6a829c !important;
+}
+
+</style>
+    <style>
+/* Tendency Breaker 共通ナビ */
+body { flex-wrap: wrap; align-content: flex-start; }
+.tb-nav { flex-basis: 100%; max-width: 1000px; display: flex; gap: 8px; flex-wrap: wrap; margin: 0 auto 1rem; font-family: 'Inter', 'Outfit', sans-serif; }
+.tb-nav a { padding: 8px 14px; border-radius: 8px; text-decoration: none; color: #475569; background: #fff; border: 1px solid #e2e8f0; font-size: 0.9rem; font-weight: 600; }
+.tb-nav a.active { background: #3b82f6; color: #fff; border-color: #3b82f6; }
+    </style>
+    <style>
+/* 閲覧アプリ（viewer）：読み込み操作を隠す */
+#drop-zone, #reset-btn, #clear-btn, #settings-panel, #debug-info, .debug-info, #total-play-count, .upload-section > .upload-area { display: none !important; }
+/* 閲覧アプリ：画像保存ボタンと表示切替チェックボックスを隠す（チェックは全てONのまま＝全部表示） */
+#save-image-btn, #download-btn, #export-all-btn, #export-header-btn, #capture-all-btn, #capture-header-btn,
+.camera-btn, .capture-btn, #visibility-controls, input[type="checkbox"] { display: none !important; }
+/* 表：列を潰さず（文字被り防止）、入りきらない分は表の中で横スクロール */
+#results-table, .table-container > #tendency-table { table-layout: auto !important; width: 100%; }
+#results-table { min-width: 680px; }
+.table-container > #tendency-table { min-width: 520px; }
+#results-table th, .table-container > #tendency-table th { white-space: nowrap; }
+.formation-percent, .percent-cell, .type-cell, .ratio-cell, .percentage-cell, .count-text, .ratio-count { white-space: nowrap; }
+#results-table .personnel-cell { width: 56px !important; min-width: 56px; }
+#results-table .input-cell { width: 44px !important; min-width: 44px; }
+#results-table .formation-name, .table-container .formation-cell { min-width: 120px; }
+#results-table .plays-cell, .table-container .plays-list { min-width: 180px; line-height: 1.4 !important; height: auto !important; }
+#results-table .play-item { display: inline !important; }
+
+/* 閲覧アプリ：4画面の題名をすべて同じ赤（Down & Distanceの赤）に */
+h1, h1 span { color: #a51f1f !important; -webkit-text-fill-color: #a51f1f !important; background: none !important; }
+/* スマホ表示の調整 */
+.app-container, .container { min-width: 0; max-width: 100%; }
+.table-wrapper, .table-container { overflow-x: auto; -webkit-overflow-scrolling: touch; max-width: 100%; }
+@media (max-width: 600px) {
+    body { padding: 10px !important; }
+    .app-container, .container { padding: 14px !important; border-radius: 8px; }
+    .tb-nav { gap: 6px; margin-bottom: 10px; }
+    .tb-nav a { padding: 6px 10px; font-size: 0.8rem; }
+    #tb-shared-banner { margin-bottom: 10px !important; }
+    h1 { font-size: 1.5rem !important; line-height: 1.25; }
+    /* Pass Zone */
+    .football-field-wrapper { padding: 0 !important; }
+    .football-field-outer { padding: 0 24px !important; }
+    .yard-label { font-size: 0.95rem !important; margin-top: -0.6rem !important; }
+    .football-field { grid-template-rows: repeat(3, 92px) !important; }
+    .bg-number { font-size: 3.5rem !important; }
+    .percentage { font-size: 1.05rem !important; }
+    .fraction { font-size: 0.75rem !important; }
+    .hash-filter { flex-wrap: wrap; }
+    .controls { flex-wrap: wrap; gap: 8px; }
+    .legend { gap: 0.6rem 1rem; }
+    .hash-filter { gap: 4px; padding: 4px; }
+    .hash-tab { padding: 6px 10px !important; font-size: 0.8rem !important; }
+    /* Personnel / Formation */
+    .results-container { padding: 12px !important; }
+    .results-header, .result-header { flex-wrap: wrap; gap: 8px; align-items: flex-start !important; }
+    .results-header h2, .result-header h2 { font-size: 1.2rem !important; }
+    .results-header button, .result-header button { writing-mode: horizontal-tb; white-space: nowrap; padding: 6px 10px !important; font-size: 0.8rem !important; }
+    /* 表 */
+    table { font-size: 0.8rem; }
+    th, td { padding: 6px 8px !important; }
+}
+    </style>
+</head>
+<body data-mode="viewer">
+    <nav class="tb-nav">
+        <a href="index.html">Dashboard</a>
+        <a href="passzone.html">Pass Zone</a>
+        <a href="dd.html">Down &amp; Distance</a>
+        <a href="personnel.html">Personnel</a>
+        <a href="formation.html" class="active">Formation</a>
+        <a href="member.html">Member List</a>
+        <a href="cadence.html">Cadence</a>
+    </nav>
+    <div class="app-container">
+        <header class="app-header">
+            <h1>Formation Tendency</h1>
+        </header>
+
+        <main>
+            <section class="upload-section">
+                <div class="upload-area" id="drop-zone">
+                    <div class="upload-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                    </div>
+                    <h2>ファイルをドラッグ＆ドロップ</h2>
+                    <p>または</p>
+                    <label for="file-upload" class="custom-file-upload">
+                        ファイルを選択
+                    </label>
+                    <input id="file-upload" type="file" accept=".xlsx, .xls, .csv" />
+                    <p class="file-hint">対応形式: .xlsx, .csv</p>
+                </div>
+            </section>
+
+            <section class="result-section" id="result-section" style="display: none;">
+                <div class="result-header">
+                    <h2>分析結果</h2>
+                    <div>
+                        <button id="capture-all-btn" class="capture-btn" style="margin-top: 0; margin-right: 10px; font-size: 0.9rem; padding: 0.5rem 1rem; background-color: #3b82f6; color: white; border: none;">📸 表全体を画像保存</button>
+                        <button id="capture-header-btn" class="capture-btn" style="margin-top: 0; margin-right: 10px; font-size: 0.9rem; padding: 0.5rem 1rem;">📸 見出しを画像保存</button>
+                        <button id="clear-btn" class="clear-btn">クリア（別のファイルを読み込む）</button>
+                    </div>
+                </div>
+                <div id="debug-info" style="font-size: 0.8rem; color: #64748b; margin-bottom: 10px;"></div>
+                <div class="table-container">
+                    <table id="tendency-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 25%;">Formation</th>
+                                <th style="width: 15%;">割合(回数)</th>
+                                <th style="width: 12%;">Type</th>
+                                <th style="width: 13%;">%</th>
+                                <th style="width: 35%;">Favorite Plays</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-body">
+                            <!-- Data will be populated here -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+document.addEventListener('DOMContentLoaded', () => {
+    const dropZone = document.getElementById('drop-zone');
+    const fileUpload = document.getElementById('file-upload');
+    const resultSection = document.getElementById('result-section');
+    const clearBtn = document.getElementById('clear-btn');
+    const captureHeaderBtn = document.getElementById('capture-header-btn');
+    const captureAllBtn = document.getElementById('capture-all-btn');
+    const tableBody = document.getElementById('table-body');
+    let workbook = null;
+
+    if (clearBtn) {
+        clearBtn.addEventListener('click', () => {
+            resultSection.style.display = 'none';
+            tableBody.innerHTML = '';
+            fileUpload.value = '';
+            
+            const uploadSection = document.querySelector('.upload-section');
+            if (uploadSection) {
+                uploadSection.style.display = 'block';
+            }
+        });
+    }
+
+    if (captureHeaderBtn) {
+        captureHeaderBtn.addEventListener('click', () => {
+            const tableContainer = document.querySelector('.table-container');
+            const tbody = document.getElementById('table-body');
+            
+            // Hide the body to capture only the header
+            const originalDisplay = tbody.style.display;
+            tbody.style.display = 'none';
+            
+            html2canvas(tableContainer, {
+                backgroundColor: '#ffffff',
+                scale: 2 // High resolution
+            }).then(canvas => {
+                // Restore body
+                tbody.style.display = originalDisplay;
+                
+                const link = document.createElement('a');
+                link.download = `table_header.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            });
+        });
+    }
+
+    if (captureAllBtn) {
+        captureAllBtn.addEventListener('click', () => {
+            const tableContainer = document.querySelector('.table-container');
+            const innerButtons = tableContainer.querySelectorAll('button');
+            
+            innerButtons.forEach(btn => btn.style.display = 'none');
+            
+            html2canvas(tableContainer, {
+                backgroundColor: '#ffffff',
+                scale: 2 // High resolution
+            }).then(canvas => {
+                innerButtons.forEach(btn => btn.style.display = '');
+                
+                const link = document.createElement('a');
+                link.download = `Formation_Tendency_All.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            });
+        });
+    }
+
+    // Drag and Drop Events
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, preventDefaults, false);
+    });
+
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    ['dragenter', 'dragover'].forEach(eventName => {
+        dropZone.addEventListener(eventName, () => {
+            dropZone.classList.add('dragover');
+        }, false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, () => {
+            dropZone.classList.remove('dragover');
+        }, false);
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+        let dt = e.dataTransfer;
+        let files = dt.files;
+        if (files.length > 0) {
+            handleFile(files[0]);
+        }
+    });
+
+    fileUpload.addEventListener('change', function(e) {
+        if (this.files.length > 0) {
+            handleFile(this.files[0]);
+        }
+    });
+
+    function handleFile(file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, {type: 'array'});
+            
+            // Assume the first sheet is the one we want
+            const firstSheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[firstSheetName];
+            
+            // Convert to 2D array (header: 1) so we can flexibly find the header row
+            const rows = XLSX.utils.sheet_to_json(worksheet, {header: 1});
+            processTendencyDataRobust(rows);
+        };
+        reader.readAsArrayBuffer(file);
+    }
+
+    function processTendencyDataRobust(rows) {
+        if (!rows || rows.length === 0) {
+            alert('ファイルが空です。');
+            return;
+        }
+
+        // Find the header row by searching the first 20 rows
+        let headerRowIndex = -1;
+        let colMap = {
+            formation: -1,
+            playType: -1,
+            offPlay: -1
+        };
+        let exactMatch = { formation: false, playType: false, offPlay: false };
+
+        for (let i = 0; i < Math.min(rows.length, 20); i++) {
+            const row = rows[i];
+            if (!row || row.length === 0) continue;
+            
+            for (let j = 0; j < row.length; j++) {
+                let cellVal = String(row[j] || '').trim().toLowerCase();
+                
+                // Formation (OFF FORM)
+                if (!exactMatch.formation) {
+                    if (cellVal === 'off form' || cellVal === 'formation' || cellVal === 'フォーメーション') {
+                        colMap.formation = j;
+                        exactMatch.formation = true;
+                    } else if (colMap.formation === -1 && (cellVal.includes('formation') || cellVal.includes('off form'))) {
+                        colMap.formation = j; // Fallback
+                    }
+                }
+                
+                // Play Type (PLAY TYPE(D) or PLAY TYPE()
+                if (!exactMatch.playType) {
+                    if (cellVal === 'play type(d)' || cellVal === 'play type(' || cellVal === 'play type (d)' || cellVal === 'play type(d') {
+                        colMap.playType = j;
+                        exactMatch.playType = true;
+                    } else if (colMap.playType === -1 && cellVal.includes('play type')) {
+                        colMap.playType = j; // Fallback
+                    }
+                }
+                
+                // OFF PLAY
+                if (!exactMatch.offPlay) {
+                    if (cellVal === 'off play' || cellVal === 'favorite plays' || cellVal === 'offplay') {
+                        colMap.offPlay = j;
+                        exactMatch.offPlay = true;
+                    } else if (colMap.offPlay === -1 && cellVal.includes('off play')) {
+                        colMap.offPlay = j; // Fallback
+                    }
+                }
+            }
+            
+            // FormationとPlayTypeの両方が見つかった行をヘッダー行とみなす
+            if (colMap.formation !== -1 && colMap.playType !== -1) {
+                headerRowIndex = i;
+                break;
+            }
+        }
+
+        if (headerRowIndex === -1) {
+            // エラー時に、どんなデータが読み込まれたか手がかりを表示する
+            const sample = rows.find(r => r && r.length > 0) || [];
+            alert('エラー: 「Formation」や「Play Type」にあたる列が見つかりませんでした。\n\n読み込まれた最初のデータ:\n' + sample.join(', '));
+            resultSection.style.display = 'none';
+            return;
+        }
+
+        let totalPlays = 0;
+        const formationMap = {};
+
+        // Parse data starting from the row after the header
+        for (let i = headerRowIndex + 1; i < rows.length; i++) {
+            const row = rows[i];
+            if (!row || row.length === 0) continue;
+
+            let formation = row[colMap.formation];
+            let rawPlayType = row[colMap.playType];
+            let offPlay = colMap.offPlay !== -1 ? row[colMap.offPlay] : '';
+
+            // Skip empty rows or rows missing critical data
+            if (!formation || !rawPlayType) continue;
+
+            formation = String(formation).trim();
+            // Filter out "合計" and "その他"
+            if (formation === '合計' || formation === 'その他') continue;
+
+            let playType = String(rawPlayType).trim().toLowerCase();
+            
+            // Normalize play type casing (Pass, Run, RPO)
+            // 先にRPOを判定することで、RPO(Run)などがRunに吸い込まれるのを防ぐ
+            let normalizedPlayType = null;
+            if (playType.includes('rpo')) {
+                normalizedPlayType = 'RPO';
+            } else if (playType.includes('pass') || playType === 'パス') {
+                normalizedPlayType = 'Pass';
+            } else if (playType.includes('run') || playType === 'ラン') {
+                normalizedPlayType = 'Run';
+            }
+
+            // If it's not Pass, Run, or RPO (e.g., Punt, Kneel), skip it
+            if (!normalizedPlayType) {
+                continue;
+            }
+
+            totalPlays++;
+
+            if (!formationMap[formation]) {
+                formationMap[formation] = {
+                    total: 0,
+                    playTypes: { 
+                        'Pass': { count: 0, plays: {} }, 
+                        'Run':  { count: 0, plays: {} }, 
+                        'RPO':  { count: 0, plays: {} } 
+                    }
+                };
+            }
+
+            formationMap[formation].total++;
+
+            if (!formationMap[formation].playTypes[normalizedPlayType]) {
+                formationMap[formation].playTypes[normalizedPlayType] = { count: 0, plays: {} };
+            }
+            formationMap[formation].playTypes[normalizedPlayType].count++;
+            
+            if (offPlay) {
+                let playName = String(offPlay).trim();
+                if (!formationMap[formation].playTypes[normalizedPlayType].plays[playName]) {
+                    formationMap[formation].playTypes[normalizedPlayType].plays[playName] = 0;
+                }
+                formationMap[formation].playTypes[normalizedPlayType].plays[playName]++;
+            }
+        }
+
+        if (totalPlays === 0) {
+            alert('列は見つかりましたが、有効なデータ行（Run/Pass/RPO）がありませんでした。');
+            resultSection.style.display = 'none';
+            return;
+        }
+
+        const debugInfo = document.getElementById('debug-info');
+        if (debugInfo) {
+            const headerRow = rows[headerRowIndex] || [];
+            debugInfo.textContent = `【デバッグ】見出し行:${headerRowIndex + 1} | Formation列:[${colMap.formation}]${headerRow[colMap.formation]} | PlayType列:[${colMap.playType}]${headerRow[colMap.playType]} | 集計対象プレイ数:${totalPlays}`;
+        }
+
+        renderTable(formationMap, totalPlays);
+    }
+
+    function renderTable(formationMap, totalPlays) {
+        tableBody.innerHTML = ''; // Clear previous data
+
+        // Convert map to array and sort by total plays (descending)
+        const formations = Object.keys(formationMap).map(key => {
+            return {
+                name: key,
+                ...formationMap[key]
+            };
+        }).sort((a, b) => b.total - a.total);
+
+        formations.forEach(form => {
+            const formPercentage = ((form.total / totalPlays) * 100).toFixed(1);
+            
+            const types = ['Pass', 'Run', 'RPO'];
+            
+            types.forEach((type, index) => {
+                const tr = document.createElement('tr');
+                const typeData = form.playTypes[type];
+                
+                // Calculate percentage within the formation
+                let typePercentage = "0";
+                if (typeData && form.total > 0) {
+                    typePercentage = ((typeData.count / form.total) * 100).toFixed(1);
+                    // Remove decimal if it's .0 for cleaner look, like 00% -> 0%
+                    if (typePercentage.endsWith('.0')) typePercentage = parseInt(typePercentage);
+                }
+
+                let percentageClass = "percentage-cell";
+                let highlightClass = "";
+                if (parseFloat(typePercentage) >= 70) {
+                    percentageClass += " highlight-bold";
+                    if (type === 'Pass') highlightClass = ' bg-highlight-pass';
+                    else if (type === 'Run') highlightClass = ' bg-highlight-run';
+                    else if (type === 'RPO') highlightClass = ' bg-highlight-rpo';
+                }
+
+                // Format Favorite Plays
+                let playsHtml = '';
+                if (typeData) {
+                    const playEntries = Object.entries(typeData.plays);
+                    // Sort by count descending
+                    playEntries.sort((a, b) => b[1] - a[1]);
+                    
+                    const formattedPlays = playEntries.map(([playName, count]) => {
+                        return `${playName} <span class="play-count">(${count})</span>`;
+                    });
+                    
+                    if (formattedPlays.length > 0) {
+                        playsHtml = formattedPlays.join(', ');
+                    }
+                }
+
+                // If first row of the formation, add the Formation Name and % with rowspan
+                if (index === 0) {
+                    let formPercentageClass = parseFloat(formPercentage) >= 70 ? 'highlight-red' : '';
+                    tr.setAttribute('data-row-formation', form.name);
+                    tr.classList.add('formation-start');
+                    tr.innerHTML = `
+                        <td rowspan="3" class="formation-cell">
+                            ${form.name}
+                            <br>
+                            <button class="capture-btn" data-formation="${form.name}">📸 画像保存</button>
+                        </td>
+                        <td rowspan="3" class="ratio-cell">
+                            <span class="${formPercentageClass}">${formPercentage}%</span>
+                            <span class="ratio-count">(${form.total}/${totalPlays})</span>
+                        </td>
+                        <td class="play-type-${type.toLowerCase()}${highlightClass}">${type}</td>
+                        <td class="${percentageClass}${highlightClass}">${typePercentage}%</td>
+                        <td class="plays-list${highlightClass}">${playsHtml}</td>
+                    `;
+                } else {
+                    tr.setAttribute('data-row-formation', form.name);
+                    tr.innerHTML = `
+                        <td class="play-type-${type.toLowerCase()}${highlightClass}">${type}</td>
+                        <td class="${percentageClass}${highlightClass}">${typePercentage}%</td>
+                        <td class="plays-list${highlightClass}">${playsHtml}</td>
+                    `;
+                }
+                
+                tableBody.appendChild(tr);
+            });
+        });
+
+        // Hide upload section and show result section
+        const uploadSection = document.querySelector('.upload-section');
+        if (uploadSection) {
+            uploadSection.style.display = 'none';
+        }
+        resultSection.style.display = 'block';
+
+        // Attach event listeners for capture buttons
+        const captureBtns = document.querySelectorAll('.capture-btn');
+        captureBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                const formationName = this.getAttribute('data-formation');
+                captureFormationAsImage(formationName);
+            });
+        });
+    }
+
+    function captureFormationAsImage(formationName) {
+        const allRows = document.querySelectorAll('#table-body tr');
+        const allButtons = document.querySelectorAll('.capture-btn');
+        const tableContainer = document.querySelector('.table-container');
+        const thead = tableContainer.querySelector('thead');
+
+        // Hide rows that don't belong to this formation
+        let firstVisibleRow = null;
+        allRows.forEach(tr => {
+            if (tr.getAttribute('data-row-formation') !== formationName) {
+                tr.style.display = 'none';
+            } else if (!firstVisibleRow) {
+                firstVisibleRow = tr;
+            }
+        });
+
+        // Lock column widths so they don't collapse when we hide the header
+        if (firstVisibleRow) {
+            const ths = thead.querySelectorAll('th');
+            const tds = firstVisibleRow.querySelectorAll('td');
+            ths.forEach((th, i) => {
+                if (tds[i]) {
+                    tds[i].style.minWidth = getComputedStyle(th).width;
+                    tds[i].style.width = getComputedStyle(th).width;
+                }
+            });
+        }
+
+        // Hide the header and capture buttons
+        thead.style.display = 'none';
+        allButtons.forEach(btn => btn.style.display = 'none');
+
+        // Capture!
+        html2canvas(tableContainer, {
+            backgroundColor: '#ffffff',
+            scale: 2 // High resolution
+        }).then(canvas => {
+            // Restore visibility and widths
+            thead.style.display = '';
+            allRows.forEach(tr => tr.style.display = '');
+            allButtons.forEach(btn => btn.style.display = 'inline-flex');
+            
+            if (firstVisibleRow) {
+                const tds = firstVisibleRow.querySelectorAll('td');
+                tds.forEach(td => {
+                    td.style.minWidth = '';
+                    td.style.width = '';
+                });
+            }
+
+            // Download the image
+            const link = document.createElement('a');
+            // Safely format the file name
+            const safeName = formationName.replace(/[\\\/\:\*\?\"\<\>\|]/g, '_');
+            link.download = `${safeName}_tendency.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        });
+    }
+});
+
+</script>
+    <script src="menu.js"></script>
+    <script src="secure-data.js"></script>
+    <script src="shared-data.js"></script>
+</body>
+</html>

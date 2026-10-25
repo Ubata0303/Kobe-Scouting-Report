@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-R66F299BPN"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-R66F299BPN');
+    </script>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scouting Report</title>
+    <meta name="theme-color" content="#3b82f6">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="スカレポ">
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <link rel="stylesheet" href="style.css">
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Libraries -->
+    <!-- SheetJS for parsing Excel/CSV -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+    <!-- Chart.js for beautiful graphs -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    <!-- Lucide for modern icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body data-mode="viewer">
+    <div class="app-container">
+        <!-- Sidebar / Navigation -->
+        <aside class="sidebar">
+            <div class="logo">
+                <i data-lucide="activity"></i>
+                <span>Scouting Report</span>
+            </div>
+            <nav>
+                <a href="#" class="active"><i data-lucide="layout-dashboard"></i> Dashboard</a>
+                <a href="passzone.html"><i data-lucide="map"></i> Pass Zone</a>
+                <a href="dd.html"><i data-lucide="list-ordered"></i> Down &amp; Distance</a>
+                <a href="personnel.html"><i data-lucide="users"></i> Personnel</a>
+                <a href="formation.html"><i data-lucide="layout-grid"></i> Formation</a>
+                <a href="play.html"><i data-lucide="file-text"></i> Play Diagram</a>
+        <a href="member.html"><i data-lucide="id-card"></i> Member List</a>
+                <a href="cadence.html"><i data-lucide="volume-2"></i> Cadence</a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header>
+                <div>
+                    <h1>Dashboard</h1>
+                    <p class="subtitle">相手オフェンスの傾向と変化を分析</p>
+                </div>
+                <div class="upload-container">
+                    <span id="viewer-status" class="status-text">データを読み込み中...</span>
+                </div>
+            </header>
+
+            <!-- Alerts Area -->
+            <section class="alerts-section" id="alerts-container">
+                <!-- Alerts will be injected here -->
+            </section>
+
+            <!-- Global Filters -->
+            <div id="filter-bar" style="display: none; background: white; padding: 16px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); margin-bottom: 24px; gap: 16px; align-items: center; border: 1px solid var(--border-color);">
+                <div style="font-weight: 600; color: var(--text-primary); margin-right: 8px;">Filters:</div>
+                <select id="filter-down" style="padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 6px; outline: none; background: #f8fafc; font-family: inherit;">
+                    <option value="ALL">All Downs</option>
+                    <option value="1">1st Down</option>
+                    <option value="2">2nd Down</option>
+                    <option value="3">3rd Down</option>
+                    <option value="4">4th Down</option>
+                </select>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <select id="filter-distance" style="padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 6px; outline: none; background: #f8fafc; font-family: inherit;">
+                        <option value="ALL">All Distances</option>
+                        <option value="SHORT" id="opt-short">Short (1-3yd)</option>
+                        <option value="MEDIUM" id="opt-med">Middle (4-7yd)</option>
+                        <option value="LONG" id="opt-long">Long (8yd+)</option>
+                    </select>
+                    <button id="settings-btn" style="background: none; border: none; cursor: pointer; color: #64748b; padding: 4px;" title="距離の基準を変更">
+                        <i data-lucide="settings" style="width: 18px; height: 18px;"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Settings Modal -->
+            <div id="settings-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
+                <div style="background: white; padding: 24px; border-radius: 12px; width: 340px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);">
+                    <h3 style="margin-top: 0; margin-bottom: 20px;">Distance 基準設定</h3>
+                    <div style="display: grid; gap: 16px; margin-bottom: 24px; font-size: 1.05rem;">
+                        <div style="display: flex; align-items: center;">
+                            <div style="width: 80px; font-weight: 600;">Short</div>
+                            <div>
+                                <input type="number" id="setting-short-min" value="1" style="width: 50px; padding: 6px; border: 1px solid #cbd5e1; border-radius: 4px; text-align: center; margin-right: 4px;">
+                                〜
+                                <input type="number" id="setting-short-max" value="3" style="width: 50px; padding: 6px; border: 1px solid #cbd5e1; border-radius: 4px; text-align: center; margin: 0 4px;"> yd
+                            </div>
+                        </div>
+                        <div style="display: flex; align-items: center;">
+                            <div style="width: 80px; font-weight: 600;">Middle</div>
+                            <div>
+                                <input type="number" id="setting-med-min" value="4" style="width: 50px; padding: 6px; border: 1px solid #cbd5e1; border-radius: 4px; text-align: center; margin-right: 4px;">
+                                〜
+                                <input type="number" id="setting-med-max" value="7" style="width: 50px; padding: 6px; border: 1px solid #cbd5e1; border-radius: 4px; text-align: center; margin: 0 4px;"> yd
+                            </div>
+                        </div>
+                        <div style="display: flex; align-items: center;">
+                            <div style="width: 80px; font-weight: 600;">Long</div>
+                            <div>
+                                <input type="number" id="setting-long-min" value="8" style="width: 50px; padding: 6px; border: 1px solid #cbd5e1; border-radius: 4px; text-align: center; margin-right: 4px;"> yd 以上
+                            </div>
+                        </div>
+                    </div>
+                    <div style="display: flex; justify-content: flex-end; gap: 12px;">
+                        <button id="settings-cancel" class="btn-secondary" style="padding: 8px 16px;">キャンセル</button>
+                        <button id="settings-save" class="btn-primary" style="padding: 8px 16px;">保存</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dashboard Grid -->
+            <div class="dashboard-grid" id="dashboard-content" style="display: none;">
+                <!-- Overview Row -->
+                <div class="card col-span-2">
+                    <div class="card-header">
+                        <h2>Run / Pass Ratio Trend</h2>
+                        <p>試合ごとのラン・パス比率の推移</p>
+                    </div>
+                    <div class="card-body">
+                        <div class="overview-chart-wrapper">
+                            <canvas id="runPassChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card col-span-2">
+                    <div class="card-header">
+                        <h2>Personnel Usage</h2>
+                        <p>パーソネル出現率の推移</p>
+                    </div>
+                    <div class="card-body">
+                        <div class="overview-chart-wrapper">
+                            <canvas id="personnelChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Deep Dive Row -->
+                <div class="card col-span-3">
+                    <div class="card-header flex-between">
+                        <div>
+                            <h2>Deep Dive: Personnel Breakdown</h2>
+                            <p>特定パーソネルの詳細分析</p>
+                        </div>
+                        <select id="personnel-select" class="select-input">
+                            <option value="">Select Personnel...</option>
+                        </select>
+                    </div>
+                    <div class="card-body split-view">
+                        <div id="deep-dive-charts" class="deep-dive-charts-grid">
+                            <!-- Charts will be dynamically inserted here -->
+                        </div>
+                        <div class="table-container half-width">
+                            <h3>Favorite Plays</h3>
+                            <table class="data-table" id="favorite-plays-table">
+                                <thead>
+                                    <tr>
+                                        <th>Formation</th>
+                                        <th>Run %</th>
+                                        <th>Pass %</th>
+                                        <th>Top Plays</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Populated by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                
+                <!-- Trends Matrix & RP Trend Row -->
+                <div class="card col-span-2">
+                    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <h2>Trends & Analytics Matrix</h2>
+                            <p>フォーメーション出現率の試合別推移（ヒートマップ ＆ 変化量）</p>
+                        </div>
+                        <button id="export-csv-btn" class="btn-primary" style="padding: 6px 12px; font-size: 0.85rem;">
+                            <i data-lucide="download"></i> Export CSV
+                        </button>
+                    </div>
+                    <div class="card-body" style="overflow-x: auto;">
+                        <table class="data-table" id="trends-matrix-table" style="width: 100%; text-align: center; border-collapse: collapse;">
+                            <thead id="trends-matrix-head">
+                                <!-- Populated by JS -->
+                            </thead>
+                            <tbody id="trends-matrix-body">
+                                <!-- Populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- Personnel Run/Pass Trend Chart -->
+                <div class="card col-span-1">
+                    <div class="card-header">
+                        <h2>Run / Pass Ratio</h2>
+                        <p id="per-rp-trend-title">選択中のパーソネルの比率推移</p>
+                    </div>
+                    <div class="card-body">
+                        <div style="height: 350px;">
+                            <canvas id="perRpTrendChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Empty State -->
+            <div class="empty-state" id="empty-state">
+                <div class="empty-icon">
+                    <i data-lucide="bar-chart-3"></i>
+                </div>
+                <h2>読み込み中</h2>
+                <p>最新のスカウティングデータを取得しています。</p>
+            </div>
+        </main>
+    </div>
+
+    <!-- App Script -->
+    <script src="menu.js"></script>
+    <script src="secure-data.js"></script>
+    <script src="app.js"></script>
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+    </script>
+</body>
+</html>

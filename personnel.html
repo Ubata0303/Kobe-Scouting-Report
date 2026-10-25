@@ -1,0 +1,984 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-R66F299BPN"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-R66F299BPN');
+    </script>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personnel Tendency</title>
+    <!-- SheetJS for Excel parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- html2canvas for image export -->
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-color: #f8fafc;
+            --text-main: #334155;
+            --text-muted: #94a3b8;
+            --primary: #3b82f6;
+            
+            --run-color: #ef4444; 
+            --pass-color: #3b82f6;
+            --rpo-color: #f59e0b; 
+            
+            /* Table specific (Light theme for easy PPT copy) */
+            --tbl-bg: #ffffff;
+            --tbl-text: #1e293b;
+            --tbl-border: #cbd5e1;
+            --tbl-header-bg: #94a3b8;
+            --tbl-header-text: #ffffff;
+            --tbl-personnel-bg: #94a3b8;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 3rem 1rem;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1400px;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        header {
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            color: #1e293b;
+        }
+
+        header p {
+            color: var(--text-muted);
+            font-size: 1.0rem;
+        }
+
+        /* Drag & Drop Zone */
+        .drop-zone {
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+            background: #ffffff;
+            border: 2px dashed #94a3b8;
+            border-radius: 12px;
+            padding: 4rem 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .drop-zone:hover, .drop-zone.dragover {
+            border-color: var(--primary);
+            background: #f8fafc;
+        }
+
+        .upload-icon {
+            color: #94a3b8;
+            margin-bottom: 1rem;
+        }
+
+        /* Results Container */
+        .results-container {
+            width: 100%;
+            background: var(--tbl-bg);
+            border-radius: 8px;
+            padding: 2rem;
+            color: var(--tbl-text);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .results-header h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .reset-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .reset-btn:hover {
+            background: var(--primary-hover);
+        }
+
+        /* Notice for PPT */
+        .ppt-notice {
+            background: #f1f5f9;
+            padding: 1rem;
+            border-left: 4px solid var(--primary);
+            border-radius: 4px;
+            margin-bottom: 1.5rem;
+            font-size: 1.0rem;
+        }
+
+        .error-message {
+            background: #fee2e2;
+            border-left: 4px solid var(--run-color);
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            border-radius: 4px;
+            color: #991b1b;
+            font-weight: 500;
+        }
+
+        /* Table */
+        .table-wrapper {
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.92rem;
+            border: 2px solid #94a3b8; /* Outer border */
+            table-layout: fixed;
+        }
+
+        th, td {
+            border: 1px solid var(--tbl-border);
+            padding: 4px 6px;
+            vertical-align: middle;
+        }
+
+        thead tr {
+            background-color: var(--tbl-header-bg);
+            color: var(--tbl-header-text);
+        }
+
+        th {
+            font-weight: 600;
+            font-size: 1.1rem;
+            padding: 7px 6px;
+        }
+
+        .personnel-cell {
+            background-color: var(--tbl-personnel-bg);
+            color: var(--tbl-header-text);
+            font-weight: 700;
+            font-size: 1.4rem;
+            text-align: center;
+            width: 100px;
+        }
+
+        .input-cell {
+            width: 80px;
+            padding: 0 !important; /* Remove padding to make input fill cell */
+        }
+
+        .editable-field {
+            width: 100%;
+            height: 100%;
+            min-height: 21px;
+            border: none;
+            background: transparent;
+            padding: 3px 6px;
+            font-size: 0.92rem;
+            color: var(--tbl-text);
+            resize: none;
+            outline: none;
+            display: block;
+        }
+        
+        .editable-field:focus {
+            background: #f8fafc;
+        }
+
+        .formation-name {
+            font-weight: 500;
+            width: 15%;
+        }
+
+        .formation-percent {
+            width: 8%;
+            text-align: center;
+        }
+        
+        .count-text {
+            font-size: 0.8em;
+            color: #64748b;
+        }
+
+        .type-cell {
+            width: 60px;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .percent-cell {
+            width: 8%;
+            font-weight: 500;
+            text-align: right;
+        }
+
+        .plays-cell {
+            width: 45%;
+            line-height: 1.15;
+        }
+
+        .play-item {
+            display: inline-block;
+        }
+
+        .play-count {
+            color: #64748b;
+            font-size: 0.85em;
+        }
+
+        /* Bold borders to match screenshot style */
+        .border-bottom-thick {
+            border-bottom: 2px solid #94a3b8 !important;
+        }
+
+        /* Colors for types */
+        .type-pass { color: var(--pass-color); }
+        .type-run { color: var(--run-color); }
+        .type-rpo { color: var(--rpo-color); }
+
+        /* Camera button */
+        .camera-btn {
+            background: rgba(0, 0, 0, 0.2);
+            border: none;
+            color: white;
+            cursor: pointer;
+            border-radius: 4px;
+            padding: 4px 8px;
+            margin-top: 8px;
+            font-size: 0.92rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            margin-left: auto;
+            margin-right: auto;
+            transition: all 0.2s;
+        }
+        .camera-btn:hover {
+            background: rgba(0, 0, 0, 0.4);
+        }
+
+        .bg-pass-high { background-color: #bae6fd !important; }
+        .bg-run-high { background-color: #fca5a5 !important; }
+        .bg-rpo-high { background-color: #fed7aa !important; }
+    </style>
+    <style>
+/* Tendency Breaker 共通ナビ */
+body { flex-wrap: wrap; align-content: flex-start; }
+.tb-nav { flex-basis: 100%; max-width: 1000px; display: flex; gap: 8px; flex-wrap: wrap; margin: 0 auto 1rem; font-family: 'Inter', 'Outfit', sans-serif; }
+.tb-nav a { padding: 8px 14px; border-radius: 8px; text-decoration: none; color: #475569; background: #fff; border: 1px solid #e2e8f0; font-size: 0.9rem; font-weight: 600; }
+.tb-nav a.active { background: #3b82f6; color: #fff; border-color: #3b82f6; }
+    </style>
+    <style>
+/* 閲覧アプリ（viewer）：読み込み操作を隠す */
+#drop-zone, #reset-btn, #clear-btn, #settings-panel, #debug-info, .debug-info, #total-play-count, .upload-section > .upload-area { display: none !important; }
+/* 閲覧アプリ：画像保存ボタンと表示切替チェックボックスを隠す（チェックは全てONのまま＝全部表示） */
+#save-image-btn, #download-btn, #export-all-btn, #export-header-btn, #capture-all-btn, #capture-header-btn,
+.camera-btn, .capture-btn, #visibility-controls, input[type="checkbox"] { display: none !important; }
+/* 表：列を潰さず（文字被り防止）、入りきらない分は表の中で横スクロール */
+#results-table, .table-container > #tendency-table { table-layout: auto !important; width: 100%; }
+#results-table { min-width: 680px; }
+.table-container > #tendency-table { min-width: 520px; }
+#results-table th, .table-container > #tendency-table th { white-space: nowrap; }
+.formation-percent, .percent-cell, .type-cell, .ratio-cell, .percentage-cell, .count-text, .ratio-count { white-space: nowrap; }
+#results-table .personnel-cell { width: 56px !important; min-width: 56px; }
+#results-table .input-cell { width: 44px !important; min-width: 44px; }
+#results-table .formation-name, .table-container .formation-cell { min-width: 120px; }
+#results-table .plays-cell, .table-container .plays-list { min-width: 180px; line-height: 1.4 !important; height: auto !important; }
+#results-table .play-item { display: inline !important; }
+
+/* 閲覧アプリ：4画面の題名をすべて同じ赤（Down & Distanceの赤）に */
+h1, h1 span { color: #a51f1f !important; -webkit-text-fill-color: #a51f1f !important; background: none !important; }
+/* スマホ表示の調整 */
+.app-container, .container { min-width: 0; max-width: 100%; }
+.table-wrapper, .table-container { overflow-x: auto; -webkit-overflow-scrolling: touch; max-width: 100%; }
+@media (max-width: 600px) {
+    body { padding: 10px !important; }
+    .app-container, .container { padding: 14px !important; border-radius: 8px; }
+    .tb-nav { gap: 6px; margin-bottom: 10px; }
+    .tb-nav a { padding: 6px 10px; font-size: 0.8rem; }
+    #tb-shared-banner { margin-bottom: 10px !important; }
+    h1 { font-size: 1.5rem !important; line-height: 1.25; }
+    /* Pass Zone */
+    .football-field-wrapper { padding: 0 !important; }
+    .football-field-outer { padding: 0 24px !important; }
+    .yard-label { font-size: 0.95rem !important; margin-top: -0.6rem !important; }
+    .football-field { grid-template-rows: repeat(3, 92px) !important; }
+    .bg-number { font-size: 3.5rem !important; }
+    .percentage { font-size: 1.05rem !important; }
+    .fraction { font-size: 0.75rem !important; }
+    .hash-filter { flex-wrap: wrap; }
+    .controls { flex-wrap: wrap; gap: 8px; }
+    .legend { gap: 0.6rem 1rem; }
+    .hash-filter { gap: 4px; padding: 4px; }
+    .hash-tab { padding: 6px 10px !important; font-size: 0.8rem !important; }
+    /* Personnel / Formation */
+    .results-container { padding: 12px !important; }
+    #results-table { min-width: 620px; }
+    .results-header, .result-header { flex-wrap: wrap; gap: 8px; align-items: flex-start !important; }
+    .results-header h2, .result-header h2 { font-size: 1.2rem !important; }
+    .results-header button, .result-header button { writing-mode: horizontal-tb; white-space: nowrap; padding: 6px 10px !important; font-size: 0.8rem !important; }
+    /* 表 */
+    table { font-size: 0.8rem; }
+    th, td { padding: 6px 8px !important; }
+}
+    </style>
+</head>
+<body data-mode="viewer">
+    <nav class="tb-nav">
+        <a href="index.html">Dashboard</a>
+        <a href="passzone.html">Pass Zone</a>
+        <a href="dd.html">Down &amp; Distance</a>
+        <a href="personnel.html" class="active">Personnel</a>
+        <a href="formation.html">Formation</a>
+        <a href="play.html">Play Diagram</a>
+        <a href="member.html">Member List</a>
+        <a href="cadence.html">Cadence</a>
+    </nav>
+
+    <div class="container">
+        <header>
+            <h1>Personnel Tendency</h1>
+        </header>
+
+        <div id="drop-zone" class="drop-zone">
+            <div class="drop-zone-content">
+                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="upload-icon">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="17 8 12 3 7 8"></polyline>
+                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
+                <h3 style="color: #1e293b; font-size: 1.1rem; font-weight: 600; margin-bottom: 1rem;">ファイルをドラッグ＆ドロップ</h3>
+                <p style="color: #64748b; font-size: 0.9rem; margin-bottom: 1rem;">または</p>
+                <button type="button" style="background: #3b82f6; color: white; border: none; padding: 0.6rem 2rem; border-radius: 6px; font-weight: 600; font-size: 0.9rem; margin-bottom: 1rem; pointer-events: none;">ファイルを選択</button>
+                <p style="color: #1e293b; font-size: 0.8rem; font-weight: 500;">対応形式: .xlsx, .csv</p>
+                <input type="file" id="file-input" accept=".xlsx, .xls, .csv" hidden>
+            </div>
+        </div>
+
+        <div id="error-message" class="error-message hidden" style="max-width: 800px; margin: 0 auto;"></div>
+
+        <div id="results-container" class="results-container hidden">
+            <div class="results-header">
+                <div>
+                    <h2 style="color: #1e293b;">Analysis Results <span id="total-play-count" style="font-size: 1rem; color: #94a3b8; font-weight: normal; margin-left: 12px;"></span></h2>
+                    <div id="visibility-controls" style="margin-top: 8px; font-size: 0.9rem; color: #334155;">
+                        <!-- Checkboxes will be inserted here dynamically -->
+                    </div>
+                </div>
+                <div style="display: flex; gap: 8px; align-items: flex-start;">
+                    <button id="export-all-btn" class="reset-btn" style="background: #3b82f6;" onclick="exportAllImage()">📸 全体を画像化</button>
+                    <button id="export-header-btn" class="reset-btn" style="background: #10b981;" onclick="exportHeaderImage()">📷 見出しを画像化</button>
+                    <button id="reset-btn" class="reset-btn">別のファイルを読み込む</button>
+                </div>
+            </div>
+
+
+            <div class="table-wrapper">
+                <table id="results-table">
+                    <colgroup>
+                        <col style="width: 100px;">
+                        <col style="width: 80px;">
+                        <col style="width: 80px;">
+                        <col style="width: 15%;">
+                        <col style="width: 9%;">
+                        <col style="width: 70px;">
+                        <col style="width: 9%;">
+                        <col style="width: 45%;">
+                    </colgroup>
+                    <thead>
+                        <tr>
+                            <th>Per</th>
+                            <th>TE BP</th>
+                            <th>Other</th>
+                            <th>Formation</th>
+                            <th>割合(回数)</th>
+                            <th>Type</th>
+                            <th>%</th>
+                            <th>Favorite Plays</th>
+                        </tr>
+                    </thead>
+                    <!-- Tbodys will be injected here dynamically -->
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const dropZone = document.getElementById('drop-zone');
+            const fileInput = document.getElementById('file-input');
+            const resultsContainer = document.getElementById('results-container');
+            const resultsTable = document.getElementById('results-table');
+            const resetBtn = document.getElementById('reset-btn');
+            const errorMsg = document.getElementById('error-message');
+
+            dropZone.addEventListener('click', () => fileInput.click());
+
+            dropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropZone.classList.add('dragover');
+            });
+
+            dropZone.addEventListener('dragleave', () => {
+                dropZone.classList.remove('dragover');
+            });
+
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('dragover');
+                if (e.dataTransfer.files.length) {
+                    handleFile(e.dataTransfer.files[0]);
+                }
+            });
+
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length) {
+                    handleFile(e.target.files[0]);
+                }
+            });
+
+            resetBtn.addEventListener('click', () => {
+                resultsContainer.classList.add('hidden');
+                dropZone.classList.remove('hidden');
+                fileInput.value = '';
+                errorMsg.classList.add('hidden');
+            });
+
+            function showError(message) {
+                errorMsg.innerHTML = message.replace(/\n/g, '<br>');
+                errorMsg.classList.remove('hidden');
+            }
+
+            function handleFile(file) {
+                if (!file.name.match(/\.(xlsx|xls|csv)$/i)) {
+                    showError('ExcelまたはCSVファイルを選択してください。');
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+                        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                        
+                        if (jsonData.length < 2) throw new Error("データがありません。");
+                        
+                        processExcelData(jsonData);
+                        
+                        dropZone.classList.add('hidden');
+                        resultsContainer.classList.remove('hidden');
+                        errorMsg.classList.add('hidden');
+                    } catch (err) {
+                        console.error(err);
+                        showError('ファイルの読み込みに失敗しました:\n' + err.message);
+                    }
+                };
+                reader.readAsArrayBuffer(file);
+            }
+
+            function findColumnIndices(headers) {
+                let personnelIdx = -1;
+                let formationIdx = -1;
+                let typeIdx = -1; 
+                let playIdx = -1; 
+
+                for (let i = 0; i < headers.length; i++) {
+                    if (!headers[i]) continue;
+                    const header = String(headers[i]).toUpperCase();
+                    
+                    if (personnelIdx === -1 && (header.includes('PERSONNE') || header.includes('PERSONEL'))) {
+                        personnelIdx = i;
+                    }
+                    if (formationIdx === -1 && (header.includes('OFF FORM') || header.includes('FORMATION'))) {
+                        formationIdx = i;
+                    }
+                    if (typeIdx === -1 && header.includes('PLAY TYPE(D)')) {
+                        typeIdx = i;
+                    }
+                    if (playIdx === -1 && (header.includes('OFF PLAY') || header === 'PLAY' || header === 'OFFPLAY')) {
+                        playIdx = i;
+                    }
+                }
+                
+                return { personnelIdx, formationIdx, typeIdx, playIdx };
+            }
+
+            function escapeHTML(str) {
+                return String(str)
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#39;');
+            }
+
+            function processExcelData(rows) {
+                let headerRowIdx = 0;
+                let bestMatchCount = 0;
+                let bestIndices = { personnelIdx: -1, formationIdx: -1, typeIdx: -1, playIdx: -1 };
+
+                // Scan to find headers
+                for (let r = 0; r < Math.min(50, rows.length); r++) {
+                    const currentHeaders = rows[r] || [];
+                    const indices = findColumnIndices(currentHeaders);
+                    let matchCount = 0;
+                    if (indices.personnelIdx !== -1) matchCount++;
+                    if (indices.formationIdx !== -1) matchCount++;
+                    if (indices.typeIdx !== -1) matchCount++;
+                    if (indices.playIdx !== -1) matchCount++;
+
+                    if (matchCount > bestMatchCount) {
+                        bestMatchCount = matchCount;
+                        bestIndices = indices;
+                        headerRowIdx = r;
+                    }
+                }
+
+                const { personnelIdx, formationIdx, typeIdx, playIdx } = bestIndices;
+
+                if (personnelIdx === -1 || typeIdx === -1 || playIdx === -1 || formationIdx === -1) {
+                    let foundHeaders = rows[headerRowIdx] ? rows[headerRowIdx].join(', ') : 'なし';
+                    throw new Error(`必要な列が見つかりません。見つかった列: Per(${personnelIdx!==-1}), Form(${formationIdx!==-1}), Type(${typeIdx!==-1}), Play(${playIdx!==-1})\n読み込んだヘッダー: ${foundHeaders.substring(0, 100)}`);
+                }
+
+                const stats = {};
+                let processedCount = 0;
+                let debugSkips = { empty: 0, punt: 0, notRPR: 0 };
+
+                for (let i = headerRowIdx + 1; i < rows.length; i++) {
+                    const row = rows[i];
+                    if (!row || row.length === 0) continue;
+
+                    let personnel = row[personnelIdx];
+                    let formation = row[formationIdx];
+                    let type = row[typeIdx];
+                    let play = row[playIdx];
+
+                    if (personnel == null || type == null || play == null || formation == null || 
+                        personnel === '' || type === '' || play === '' || formation === '') {
+                        debugSkips.empty++;
+                        continue;
+                    }
+                    
+                    personnel = escapeHTML(String(personnel).trim());
+                    formation = escapeHTML(String(formation).trim());
+                    type = String(type).trim().toUpperCase();
+                    play = escapeHTML(String(play).trim());
+
+                    if (type.includes('PUNT') || type.includes('KICK') || type.includes('FG') || type.includes('フィールドゴール')) {
+                        debugSkips.punt++;
+                        continue;
+                    }
+                    
+                    let isRPO = type.includes('RPO');
+                    // Only count as pure Run/Pass if it's NOT an RPO
+                    let isRun = !isRPO && (type.includes('RUN') || type === 'R' || type.includes('ラン'));
+                    let isPass = !isRPO && (type.includes('PASS') || type === 'P' || type.includes('パス'));
+
+                    if (!isRPO && !isRun && !isPass) {
+                        debugSkips.notRPR++;
+                        continue;
+                    }
+
+                    const category = isRPO ? 'rpo' : (isPass ? 'pass' : 'run');
+
+                    if (!stats[personnel]) {
+                        stats[personnel] = {
+                            total: 0,
+                            categories: { run: 0, pass: 0, rpo: 0 },
+                            formations: {}
+                        };
+                    }
+
+                    stats[personnel].total++;
+                    stats[personnel].categories[category]++;
+
+                    if (!stats[personnel].formations[formation]) {
+                        stats[personnel].formations[formation] = {
+                            total: 0,
+                            categories: { 
+                                run: { count: 0, plays: {} }, 
+                                pass: { count: 0, plays: {} }, 
+                                rpo: { count: 0, plays: {} } 
+                            }
+                        };
+                    }
+
+                    stats[personnel].formations[formation].total++;
+                    stats[personnel].formations[formation].categories[category].count++;
+                    
+                    if (!stats[personnel].formations[formation].categories[category].plays[play]) {
+                        stats[personnel].formations[formation].categories[category].plays[play] = 0;
+                    }
+                    stats[personnel].formations[formation].categories[category].plays[play]++;
+                    
+                    processedCount++;
+                }
+
+                if (processedCount === 0) {
+                    throw new Error(`データが1件も集計されませんでした。\n[デバッグ情報]\n特定列: Per=${personnelIdx}, Form=${formationIdx}, Type=${typeIdx}, Play=${playIdx}\nスキップ: 空白=${debugSkips.empty}, Punt=${debugSkips.punt}, 判定不可=${debugSkips.notRPR}`);
+                }
+
+                const headersRow = rows[headerRowIdx];
+                const perHeaderName = headersRow[personnelIdx];
+                const formHeaderName = headersRow[formationIdx];
+                const typeHeaderName = headersRow[typeIdx];
+                const debugText = `【デバッグ】見出し行:${headerRowIdx + 1} | Personnel列:[${personnelIdx + 1}]${perHeaderName} | Formation列:[${formationIdx + 1}]${formHeaderName} | PlayType列:[${typeIdx + 1}]${typeHeaderName} | 集計対象プレイ数:${processedCount}`;
+                const totalSpan = document.getElementById("total-play-count");
+                totalSpan.innerText = debugText;
+                totalSpan.style.display = "block";
+                totalSpan.style.fontSize = "0.85rem";
+                totalSpan.style.marginTop = "4px";
+                totalSpan.style.fontWeight = "normal";
+                renderTable(stats, processedCount);
+            }
+
+            function getPct(count, total) {
+                if (total === 0) return "0.0%";
+                const pct = (count / total) * 100;
+                const pctStr = pct.toFixed(1) + "%";
+                if (pct >= 70) {
+                    return `<span style="font-weight: 900;">${pctStr}</span>`;
+                }
+                return pctStr;
+            }
+
+            function getProportionPct(count, total) {
+                if (total === 0) return "0.0%";
+                const pct = (count / total) * 100;
+                const pctStr = pct.toFixed(1) + "%";
+                if (pct >= 70) {
+                    return `<span style="color: #dc2626; font-weight: 900;">${pctStr}</span>`;
+                }
+                return pctStr;
+            }
+
+
+            function getBgClass(type, count, total) {
+                if (total === 0) return "";
+                const pct = (count / total) * 100;
+                if (pct >= 70) {
+                    if (type === 'pass') return 'bg-pass-high';
+                    if (type === 'run') return 'bg-run-high';
+                    if (type === 'rpo') return 'bg-rpo-high';
+                }
+                return "";
+            }
+
+            function formatPlays(playsObj) {
+                const sorted = Object.entries(playsObj).sort((a, b) => b[1] - a[1]);
+                if (sorted.length === 0) return '';
+                return sorted.map(([play, count]) => {
+                    return `<span class="play-item">${play} <span class="play-count">(${count})</span></span>`;
+                }).join(', ');
+            }
+
+            function renderTable(stats, processedCount) {
+                const existingTbodys = resultsTable.querySelectorAll('tbody');
+                existingTbodys.forEach(tb => tb.remove());
+                
+                const personnelKeys = Object.keys(stats).sort((a, b) => stats[b].total - stats[a].total);
+                
+                // Generate visibility checkboxes
+                const visibilityContainer = document.getElementById('visibility-controls');
+                if (visibilityContainer) {
+                    visibilityContainer.innerHTML = '<strong>表示するPersonnel:</strong> ';
+                    personnelKeys.forEach((per, pIdx) => {
+                        const label = document.createElement('label');
+                        label.style.marginRight = '12px';
+                        label.style.cursor = 'pointer';
+                        label.innerHTML = `<input type="checkbox" checked onchange="document.getElementById('personnel-block-${pIdx}').style.display = this.checked ? '' : 'none';"> ${per}`;
+                        visibilityContainer.appendChild(label);
+                    });
+                }
+
+                personnelKeys.forEach((per, pIdx) => {
+                    const data = stats[per];
+                    const forms = Object.keys(data.formations).sort((a, b) => data.formations[b].total - data.formations[a].total);
+                    
+                    const formCount = forms.length;
+                    const personnelRowspan = 3 + (formCount * 3);
+                    const blockBorderClass = "border-bottom-thick";
+
+                    const tbody = document.createElement('tbody');
+                    tbody.className = 'personnel-tbody';
+                    tbody.id = 'personnel-block-' + pIdx;
+
+                    let html = `
+                        <tr style="border-top: 2px solid #94a3b8;">
+                            <td rowspan="${personnelRowspan}" class="personnel-cell">
+                                ${per}
+                                <button class="camera-btn" onclick="exportImage('${tbody.id}', '${per}')">📷 画像化</button>
+                            </td>
+                            <td rowspan="${personnelRowspan}" class="input-cell"><textarea class="editable-field" placeholder="入力..."></textarea></td>
+                            <td rowspan="${personnelRowspan}" class="input-cell"><textarea class="editable-field" placeholder="入力..."></textarea></td>
+                            <td rowspan="3" colspan="2" style="font-weight:600; text-align:center;">
+                                合計<br><span class="count-text" style="font-weight:normal;">(${data.total}/${processedCount})</span>
+                            </td>
+                            <td class="type-cell type-pass ${getBgClass('pass', data.categories.pass, data.total)}">Pass</td>
+                            <td class="percent-cell ${getBgClass('pass', data.categories.pass, data.total)}">${getPct(data.categories.pass, data.total)}</td>
+                            <td class="plays-cell ${getBgClass('pass', data.categories.pass, data.total)}"></td>
+                        </tr>
+                        <tr>
+                            <td class="type-cell type-run ${getBgClass('run', data.categories.run, data.total)}">Run</td>
+                            <td class="percent-cell ${getBgClass('run', data.categories.run, data.total)}">${getPct(data.categories.run, data.total)}</td>
+                            <td class="plays-cell ${getBgClass('run', data.categories.run, data.total)}"></td>
+                        </tr>
+                        <tr>
+                            <td class="type-cell type-rpo ${getBgClass('rpo', data.categories.rpo, data.total)}">RPO</td>
+                            <td class="percent-cell ${getBgClass('rpo', data.categories.rpo, data.total)}">${getPct(data.categories.rpo, data.total)}</td>
+                            <td class="plays-cell ${getBgClass('rpo', data.categories.rpo, data.total)}"></td>
+                        </tr>
+                    `;
+
+                    forms.forEach((form, fIdx) => {
+                        let fData = data.formations[form];
+                        let trClass = (fIdx === forms.length - 1) ? blockBorderClass : "";
+
+                        html += `
+                            <tr>
+                                <td rowspan="3" class="formation-name">
+                                    <label style="cursor: pointer; display: block; width: 100%;">
+                                        <span>${form}</span>
+                                        <input type="checkbox" checked class="form-checkbox camera-btn" style="float: right; margin-top: 2px;">
+                                    </label>
+                                </td>
+                                <td rowspan="3" class="formation-percent">${getProportionPct(fData.total, data.total)}<br><span class="count-text">(${fData.total}/${data.total})</span></td>
+                                <td class="type-cell type-pass ${getBgClass('pass', fData.categories.pass.count, fData.total)}">Pass</td>
+                                <td class="percent-cell ${getBgClass('pass', fData.categories.pass.count, fData.total)}">${getPct(fData.categories.pass.count, fData.total)}</td>
+                                <td class="plays-cell ${getBgClass('pass', fData.categories.pass.count, fData.total)}">${formatPlays(fData.categories.pass.plays)}</td>
+                            </tr>
+                            <tr>
+                                <td class="type-cell type-run ${getBgClass('run', fData.categories.run.count, fData.total)}">Run</td>
+                                <td class="percent-cell ${getBgClass('run', fData.categories.run.count, fData.total)}">${getPct(fData.categories.run.count, fData.total)}</td>
+                                <td class="plays-cell ${getBgClass('run', fData.categories.run.count, fData.total)}">${formatPlays(fData.categories.run.plays)}</td>
+                            </tr>
+                            <tr class="${trClass}">
+                                <td class="type-cell type-rpo ${getBgClass('rpo', fData.categories.rpo.count, fData.total)}">RPO</td>
+                                <td class="percent-cell ${getBgClass('rpo', fData.categories.rpo.count, fData.total)}">${getPct(fData.categories.rpo.count, fData.total)}</td>
+                                <td class="plays-cell ${getBgClass('rpo', fData.categories.rpo.count, fData.total)}">${formatPlays(fData.categories.rpo.plays)}</td>
+                            </tr>
+                        `;
+                    });
+
+                    tbody.innerHTML = html;
+                    resultsTable.appendChild(tbody);
+                });
+            }
+
+            window.exportImage = function(targetTbodyId, perName) {
+                const allTbodys = document.querySelectorAll('.personnel-tbody');
+                allTbodys.forEach(tb => {
+                    if(tb.id !== targetTbodyId) {
+                        tb.style.display = 'none';
+                    }
+                });
+                
+                const thead = document.querySelector('thead');
+                if (thead) thead.style.display = 'none';
+                
+                const buttons = document.querySelectorAll('.camera-btn');
+                buttons.forEach(btn => btn.style.display = 'none');
+                
+                // Handle unchecked formations for this specific tbody
+                const tbody = document.getElementById(targetTbodyId);
+                const formCheckboxes = tbody.querySelectorAll('.form-checkbox');
+                const hiddenRows = [];
+                const modifiedRowspans = new Map();
+
+                formCheckboxes.forEach(cb => {
+                    if (!cb.checked) {
+                        const tr1 = cb.closest('tr');
+                        const tr2 = tr1.nextElementSibling;
+                        const tr3 = tr2.nextElementSibling;
+                        
+                        tr1.style.display = 'none';
+                        tr2.style.display = 'none';
+                        tr3.style.display = 'none';
+                        hiddenRows.push(tr1, tr2, tr3);
+                        
+                        const firstTr = tbody.firstElementChild;
+                        const personnelCell = firstTr.querySelector('.personnel-cell');
+                        const inputCells = firstTr.querySelectorAll('.input-cell');
+                        
+                        if (!modifiedRowspans.has(personnelCell)) {
+                            modifiedRowspans.set(personnelCell, parseInt(personnelCell.getAttribute('rowspan')));
+                        }
+                        
+                        let currentSpan = parseInt(personnelCell.getAttribute('rowspan'));
+                        personnelCell.setAttribute('rowspan', currentSpan - 3);
+                        inputCells.forEach(cell => {
+                            cell.setAttribute('rowspan', currentSpan - 3);
+                        });
+                    }
+                });
+
+                const tableWrapper = document.querySelector('.table-wrapper');
+                
+                html2canvas(tableWrapper, {
+                    backgroundColor: '#ffffff',
+                    scale: 2 
+                }).then(canvas => {
+                    const link = document.createElement('a');
+                    link.download = 'Tendency_' + perName + '.png';
+                    link.href = canvas.toDataURL('image/png');
+                    link.click();
+                    
+                    // Restore everything
+                    allTbodys.forEach(tb => tb.style.display = '');
+                    if (thead) thead.style.display = '';
+                    buttons.forEach(btn => btn.style.display = '');
+                    
+                    hiddenRows.forEach(tr => tr.style.display = '');
+                    modifiedRowspans.forEach((origSpan, pCell) => {
+                        pCell.setAttribute('rowspan', origSpan);
+                        const firstTr = pCell.closest('tr');
+                        firstTr.querySelectorAll('.input-cell').forEach(cell => {
+                            cell.setAttribute('rowspan', origSpan);
+                        });
+                    });
+                });
+            };
+
+
+            window.exportAllImage = function() {
+                const thead = document.querySelector('thead');
+                if (thead) thead.style.display = '';
+                
+                // Hide camera buttons temporarily
+                const buttons = document.querySelectorAll('.camera-btn');
+                buttons.forEach(btn => btn.style.display = 'none');
+                
+                // Handle unchecked formations
+                const formCheckboxes = document.querySelectorAll('.form-checkbox');
+                const hiddenRows = [];
+                const modifiedRowspans = new Map();
+
+                formCheckboxes.forEach(cb => {
+                    // Only process if it's unchecked and its parent tbody is not already hidden by personnel checkboxes
+                    const tbody = cb.closest('tbody');
+                    if (!cb.checked && tbody.style.display !== 'none') {
+                        const tr1 = cb.closest('tr');
+                        const tr2 = tr1.nextElementSibling;
+                        const tr3 = tr2.nextElementSibling;
+                        
+                        tr1.style.display = 'none';
+                        tr2.style.display = 'none';
+                        tr3.style.display = 'none';
+                        hiddenRows.push(tr1, tr2, tr3);
+                        
+                        const firstTr = tbody.firstElementChild;
+                        const personnelCell = firstTr.querySelector('.personnel-cell');
+                        const inputCells = firstTr.querySelectorAll('.input-cell');
+                        
+                        if (!modifiedRowspans.has(personnelCell)) {
+                            modifiedRowspans.set(personnelCell, parseInt(personnelCell.getAttribute('rowspan')));
+                        }
+                        
+                        let currentSpan = parseInt(personnelCell.getAttribute('rowspan'));
+                        personnelCell.setAttribute('rowspan', currentSpan - 3);
+                        inputCells.forEach(cell => {
+                            cell.setAttribute('rowspan', currentSpan - 3);
+                        });
+                    }
+                });
+                
+                const tableWrapper = document.querySelector('.table-wrapper');
+                
+                html2canvas(tableWrapper, {
+                    backgroundColor: '#ffffff',
+                    scale: 2 
+                }).then(canvas => {
+                    // Restore camera buttons
+                    buttons.forEach(btn => btn.style.display = '');
+                    
+                    // Restore hidden rows and rowspans
+                    hiddenRows.forEach(tr => tr.style.display = '');
+                    modifiedRowspans.forEach((origSpan, pCell) => {
+                        pCell.setAttribute('rowspan', origSpan);
+                        const firstTr = pCell.closest('tr');
+                        firstTr.querySelectorAll('.input-cell').forEach(cell => {
+                            cell.setAttribute('rowspan', origSpan);
+                        });
+                    });
+                    
+                    const link = document.createElement('a');
+                    link.download = `Personnel_Tendency_All.png`;
+                    link.href = canvas.toDataURL('image/png');
+                    link.click();
+                });
+            };
+
+            window.exportHeaderImage = function() {
+                const allTbodys = document.querySelectorAll('.personnel-tbody');
+                allTbodys.forEach(tb => tb.style.display = 'none');
+                
+                const tableWrapper = document.querySelector('.table-wrapper');
+                
+                html2canvas(tableWrapper, {
+                    backgroundColor: '#ffffff',
+                    scale: 2 
+                }).then(canvas => {
+                    const link = document.createElement('a');
+                    link.download = 'Tendency_Header.png';
+                    link.href = canvas.toDataURL('image/png');
+                    link.click();
+                    
+                    allTbodys.forEach(tb => tb.style.display = '');
+                });
+            };
+        });
+    </script>
+    <script src="menu.js"></script>
+    <script src="secure-data.js"></script>
+    <script src="shared-data.js"></script>
+</body>
+</html>

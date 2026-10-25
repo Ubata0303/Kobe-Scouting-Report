@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cadence - Scouting Report</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+:root {
+    --bg-color: #e5e7eb;
+    --card-bg: #ffffff;
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --accent: #ad181f;
+    --num-blue: #0432ff;
+    --num-red: #ff0000;
+    --line-gray: #d9d9d9;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Meiryo', 'Inter', -apple-system, sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-primary);
+    min-height: 100vh;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-content: flex-start;
+    padding: 2rem;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* Tendency Breaker 共通ナビ */
+.tb-nav {
+    flex-basis: 100%;
+    max-width: 1000px;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin: 0 auto 1rem;
+    font-family: 'Inter', -apple-system, sans-serif;
+}
+.tb-nav a {
+    padding: 8px 14px;
+    border-radius: 8px;
+    text-decoration: none;
+    color: #475569;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+.tb-nav a.active {
+    background: #3b82f6;
+    color: #fff;
+    border-color: #3b82f6;
+}
+
+.app-container {
+    width: 100%;
+    max-width: 1000px;
+    background: var(--card-bg);
+    padding: 2.2rem 2.5rem 2.8rem;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+    border-radius: 4px;
+}
+
+/* 見出し */
+.slide-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding-bottom: 0.65rem;
+    margin-bottom: 1.5rem;
+    border-bottom: 7px solid var(--line-gray);
+}
+.slide-header h1 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--accent) !important;
+    -webkit-text-fill-color: var(--accent) !important;
+    letter-spacing: 0.01em;
+}
+
+/* 青色の大見出し（Cadence : Crap Hut） */
+.cadence-headline {
+    font-size: 2.35rem;
+    font-weight: 700;
+    color: var(--num-blue);
+    margin-bottom: 1.8rem;
+    line-height: 1.25;
+    letter-spacing: 0.01em;
+}
+
+/* コンテンツ配置（PCは左右分割、スマホは縦並び） */
+.cadence-content {
+    display: grid;
+    grid-template-columns: 1.15fr 0.95fr;
+    gap: 28px;
+    align-items: end;
+}
+
+.cadence-items {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.cadence-item {
+    position: relative;
+}
+.cadence-item-heading {
+    font-size: 1.22rem;
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 0.25rem;
+    line-height: 1.45;
+}
+.cadence-item-body {
+    font-size: 1.18rem;
+    font-weight: 500;
+    color: #111827;
+    line-height: 1.6;
+    word-break: break-word;
+}
+
+.txt-blue {
+    color: var(--num-blue);
+    font-weight: 700;
+}
+.txt-red {
+    color: var(--num-red);
+    font-weight: 700;
+}
+
+/* フィールド写真 */
+.cadence-photo-area {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.cadence-photo-frame {
+    width: 100%;
+    border-radius: 4px;
+    overflow: hidden;
+    border: 1px solid #cbd5e1;
+    background: #f8fafc;
+    cursor: zoom-in;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+.cadence-photo-frame img {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+.photo-caption {
+    font-size: 0.78rem;
+    color: #64748b;
+    text-align: right;
+}
+
+/* 写真拡大モーダル */
+.photo-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 4500;
+    background: rgba(15, 23, 42, 0.85);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    cursor: zoom-out;
+}
+.photo-modal.open {
+    display: flex;
+}
+.photo-modal img {
+    max-width: 96vw;
+    max-height: 90vh;
+    border-radius: 6px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+}
+
+/* スマホ表示の最適化 */
+@media (max-width: 768px) {
+    body {
+        padding: 10px !important;
+    }
+    .app-container {
+        padding: 16px 14px 24px !important;
+        border-radius: 8px;
+    }
+    #tb-shared-banner {
+        margin-bottom: 10px !important;
+    }
+    .slide-header {
+        margin-bottom: 1rem;
+        padding-bottom: 0.45rem;
+        border-bottom-width: 5px;
+    }
+    .slide-header h1 {
+        font-size: 1.35rem !important;
+    }
+    .cadence-headline {
+        font-size: 1.55rem;
+        margin-bottom: 1.25rem;
+    }
+    .cadence-content {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+    .cadence-items {
+        gap: 1.2rem;
+    }
+    .cadence-item-heading {
+        font-size: 1.05rem;
+    }
+    .cadence-item-body {
+        font-size: 1rem;
+        line-height: 1.55;
+    }
+}
+    </style>
+</head>
+<body data-mode="viewer" data-extra-page="true">
+    <nav class="tb-nav">
+        <a href="index.html">Dashboard</a>
+        <a href="passzone.html">Pass Zone</a>
+        <a href="dd.html">Down &amp; Distance</a>
+        <a href="personnel.html">Personnel</a>
+        <a href="formation.html">Formation</a>
+        <a href="member.html">Member List</a>
+        <a href="cadence.html" class="active">Cadence</a>
+    </nav>
+
+    <div class="app-container">
+        <div class="slide-header">
+            <h1>Cadence</h1>
+        </div>
+
+        <div id="headline-container"></div>
+
+        <div class="cadence-content">
+            <div class="cadence-items" id="cadence-items-container"></div>
+            <div class="cadence-photo-area" id="cadence-photo-area"></div>
+        </div>
+    </div>
+
+    <div class="photo-modal" id="photo-modal">
+        <img id="photo-modal-img" src="" alt="Cadence Field View">
+    </div>
+
+    <script src="scouting-extra.js"></script>
+    <script>
+(function () {
+    let extraData = window.TBScoutingExtra.getExtraData();
+
+    const headlineContainer = document.getElementById('headline-container');
+    const itemsContainer = document.getElementById('cadence-items-container');
+    const photoArea = document.getElementById('cadence-photo-area');
+    const photoModal = document.getElementById('photo-modal');
+    const photoModalImg = document.getElementById('photo-modal-img');
+
+    function render() {
+        const cad = extraData.cadence || { headline: '', items: [], image: '' };
+
+        headlineContainer.innerHTML = '';
+        const h2 = document.createElement('h2');
+        h2.className = 'cadence-headline';
+        h2.textContent = cad.headline || '';
+        headlineContainer.appendChild(h2);
+
+        itemsContainer.innerHTML = '';
+        (cad.items || []).forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'cadence-item';
+            div.innerHTML = `
+                <div class="cadence-item-heading">${window.TBScoutingExtra.formatRichText(item.heading)}</div>
+                <div class="cadence-item-body">${window.TBScoutingExtra.formatRichText(item.body)}</div>
+            `;
+            itemsContainer.appendChild(div);
+        });
+
+        photoArea.innerHTML = '';
+        if (cad.image) {
+            const frame = document.createElement('div');
+            frame.className = 'cadence-photo-frame';
+            const img = document.createElement('img');
+            img.src = cad.image;
+            img.alt = 'Cadence Field Photo';
+            frame.appendChild(img);
+            frame.addEventListener('click', () => {
+                photoModalImg.src = cad.image;
+                photoModal.classList.add('open');
+            });
+            const cap = document.createElement('div');
+            cap.className = 'photo-caption';
+            cap.textContent = '※写真をタップすると拡大表示します';
+            photoArea.append(frame, cap);
+        }
+    }
+
+    photoModal.addEventListener('click', () => photoModal.classList.remove('open'));
+
+    window.addEventListener('tb-extra-published', e => {
+        extraData = window.TBScoutingExtra.getExtraData(e.detail);
+        render();
+    });
+
+    render();
+})();
+    </script>
+    <script src="menu.js"></script>
+    <script src="secure-data.js"></script>
+    <script src="shared-data.js"></script>
+</body>
+</html>

@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Down & Distance Tendency</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+/* style.css */
+:root {
+    --bg-color: #e5e7eb;
+    --text-primary: #000000;
+    --text-secondary: #475569;
+    --accent: #a51f1f; /* Deep red from the image header */
+    
+    --card-bg: #ffffff;
+    --border-color: #333333; /* Dark gray for distinct excel-like borders */
+    
+    --row-1st: #bed8ed; /* Pastel Blue */
+    --row-2nd: #fbe5d6; /* Pastel Orange */
+    --row-3rd: #d7efd4; /* Pastel Green */
+    --row-4th: #ecd3ed; /* Pastel Pink/Purple */
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Helvetica Neue', Arial, 'Inter', sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-primary);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 2rem;
+}
+
+.app-container {
+    width: 100%;
+    max-width: 1000px;
+    margin-top: 1rem;
+    background: var(--card-bg);
+    padding: 3rem;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+    border-top: 12px solid #e5e7eb;
+}
+
+header {
+    margin-bottom: 2.5rem;
+    border-bottom: 5px solid #d1d5db;
+    padding-bottom: 1rem;
+    position: relative;
+    text-align: left;
+}
+
+header::after {
+    content: '';
+    position: absolute;
+    bottom: -5px;
+    left: 0;
+    width: 100%;
+    height: 5px;
+    background: #e2e8f0; 
+}
+
+h1 {
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: var(--accent);
+    margin-bottom: 0.5rem;
+}
+
+h1 span {
+    color: var(--accent);
+    background: none;
+    -webkit-text-fill-color: currentcolor;
+}
+
+header p {
+    color: var(--text-primary);
+    font-size: 1.1rem;
+    margin-top: 1.5rem;
+}
+
+.drop-zone {
+    background: #f8fafc;
+    border: 2px dashed #94a3b8;
+    padding: 4rem 2rem;
+    text-align: center;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    margin-bottom: 2rem;
+}
+
+.drop-zone:hover, .drop-zone.dragover {
+    border-color: var(--accent);
+    background: #fef2f2;
+}
+
+.drop-zone-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    pointer-events: none;
+}
+
+.upload-icon {
+    color: #64748b;
+}
+
+.drop-zone-text {
+    font-size: 1.1rem;
+    color: var(--text-secondary);
+}
+
+.drop-zone-text span {
+    color: var(--accent);
+    font-weight: bold;
+}
+
+#file-input {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+    display: none;
+}
+
+.hidden {
+    display: none !important;
+}
+
+.table-header {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 1rem;
+}
+
+.table-header h2 {
+    display: none; /* Hide the '分析結果' text to make it look cleaner like the image */
+}
+
+.header-buttons {
+    display: flex;
+    gap: 1rem;
+}
+
+.download-btn {
+    background: var(--accent);
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+    cursor: pointer;
+    border-radius: 4px;
+    font-weight: bold;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    transition: all 0.2s ease;
+}
+
+.download-btn:hover {
+    background: #991b1b;
+}
+
+.reset-btn {
+    background: white;
+    color: #333;
+    border: 1px solid #ccc;
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+.reset-btn:hover {
+    background: #f1f5f9;
+}
+
+.debug-info {
+    font-size: 0.85rem;
+    color: #64748b;
+    margin-bottom: 0.5rem;
+    padding: 0.5rem;
+    background-color: #f1f5f9;
+    border-radius: 4px;
+    border: 1px solid #e2e8f0;
+}
+
+.table-wrapper {
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    border: 2px solid var(--border-color);
+}
+
+th, td {
+    border: 1px solid var(--border-color);
+    padding: 0.75rem 0.5rem;
+    font-size: 1.35rem; /* Larger font size to match image */
+}
+
+th {
+    background: white;
+    font-weight: normal;
+}
+
+th:first-child {
+    width: 33%;
+}
+
+th:not(:first-child), td:not(:first-child) {
+    text-align: left;
+}
+
+td:first-child {
+    font-size: 1.4rem;
+}
+
+/* Row Colors */
+tr[data-down="1"] td { background-color: var(--row-1st); }
+tr[data-down="2"] td { background-color: var(--row-2nd); }
+tr[data-down="3"] td { background-color: var(--row-3rd); }
+tr[data-down="4"] td { background-color: var(--row-4th); }
+
+.stat-cell {
+    font-weight: normal;
+}
+
+.stat-cell span {
+    font-size: 0.6em;
+    color: #64748b;
+    font-weight: normal;
+}
+
+.highlight-red {
+    color: #e11d48;
+    font-weight: 700;
+}
+
+.empty-cell {
+    color: #000;
+}
+
+sup {
+    font-size: 0.6em;
+    vertical-align: super;
+}
+
+.settings-panel {
+    background: #f8fafc;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+.settings-panel h3 {
+    font-size: 1.1rem;
+    color: var(--accent);
+    margin-bottom: 1rem;
+}
+.settings-row {
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px dashed #e2e8f0;
+}
+.settings-row:last-child {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: none;
+}
+.settings-row h4 {
+    margin-top: 0;
+    margin-bottom: 0.5rem;
+    color: #475569;
+    font-size: 1rem;
+}
+.settings-inputs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    align-items: center;
+}
+.input-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.input-group label {
+    font-weight: bold;
+    color: #334155;
+}
+.input-group input {
+    width: 60px;
+    padding: 0.25rem 0.5rem;
+    border: 1px solid #94a3b8;
+    border-radius: 4px;
+    font-size: 1rem;
+    text-align: center;
+}
+.settings-hint {
+    margin-top: 1rem;
+    font-size: 0.85rem;
+    color: #64748b;
+}
+    </style>
+    <style>
+/* Tendency Breaker 共通ナビ */
+body { flex-wrap: wrap; align-content: flex-start; }
+.tb-nav { flex-basis: 100%; max-width: 1000px; display: flex; gap: 8px; flex-wrap: wrap; margin: 0 auto 1rem; font-family: 'Inter', 'Outfit', sans-serif; }
+.tb-nav a { padding: 8px 14px; border-radius: 8px; text-decoration: none; color: #475569; background: #fff; border: 1px solid #e2e8f0; font-size: 0.9rem; font-weight: 600; }
+.tb-nav a.active { background: #3b82f6; color: #fff; border-color: #3b82f6; }
+    </style>
+    <style>
+/* 閲覧アプリ（viewer）：読み込み操作を隠す */
+#drop-zone, #reset-btn, #clear-btn, #settings-panel, #debug-info, .debug-info, #total-play-count, .upload-section > .upload-area { display: none !important; }
+/* 閲覧アプリ：画像保存ボタンと表示切替チェックボックスを隠す（チェックは全てONのまま＝全部表示） */
+#save-image-btn, #download-btn, #export-all-btn, #export-header-btn, #capture-all-btn, #capture-header-btn,
+.camera-btn, .capture-btn, #visibility-controls, input[type="checkbox"] { display: none !important; }
+/* 閲覧アプリ：4画面の題名をすべて同じ赤（Down & Distanceの赤）に */
+h1, h1 span { color: #a51f1f !important; -webkit-text-fill-color: #a51f1f !important; background: none !important; }
+/* スマホ表示の調整 */
+.app-container, .container { min-width: 0; max-width: 100%; }
+.table-wrapper, .table-container { overflow-x: auto; -webkit-overflow-scrolling: touch; max-width: 100%; }
+@media (max-width: 600px) {
+    body { padding: 10px !important; }
+    .app-container, .container { padding: 14px !important; border-radius: 8px; }
+    .tb-nav { gap: 6px; margin-bottom: 10px; }
+    .tb-nav a { padding: 6px 10px; font-size: 0.8rem; }
+    #tb-shared-banner { margin-bottom: 10px !important; }
+    h1 { font-size: 1.5rem !important; line-height: 1.25; }
+    /* Pass Zone */
+    .football-field-wrapper { padding: 0 !important; }
+    .football-field-outer { padding: 0 24px !important; }
+    .yard-label { font-size: 0.95rem !important; margin-top: -0.6rem !important; }
+    .football-field { grid-template-rows: repeat(3, 92px) !important; }
+    .bg-number { font-size: 3.5rem !important; }
+    .percentage { font-size: 1.05rem !important; }
+    .fraction { font-size: 0.75rem !important; }
+    .hash-filter { flex-wrap: wrap; }
+    .controls { flex-wrap: wrap; gap: 8px; }
+    .legend { gap: 0.6rem 1rem; }
+    .hash-filter { gap: 4px; padding: 4px; }
+    .hash-tab { padding: 6px 10px !important; font-size: 0.8rem !important; }
+    /* Personnel / Formation */
+    .results-container { padding: 12px !important; }
+    .results-header, .result-header { flex-wrap: wrap; gap: 8px; align-items: flex-start !important; }
+    .results-header h2, .result-header h2 { font-size: 1.2rem !important; }
+    .results-header button, .result-header button { writing-mode: horizontal-tb; white-space: nowrap; padding: 6px 10px !important; font-size: 0.8rem !important; }
+    /* 表 */
+    table { font-size: 0.8rem; }
+    th, td { padding: 6px 8px !important; }
+}
+    </style>
+</head>
+<body data-mode="viewer">
+    <nav class="tb-nav">
+        <a href="index.html">Dashboard</a>
+        <a href="passzone.html">Pass Zone</a>
+        <a href="dd.html" class="active">Down &amp; Distance</a>
+        <a href="personnel.html">Personnel</a>
+        <a href="formation.html">Formation</a>
+        <a href="member.html">Member List</a>
+        <a href="cadence.html">Cadence</a>
+    </nav>
+    <div class="app-container">
+        <header>
+            <h1>Down & Distance <span>Tendency</span></h1>
+        </header>
+
+        <main>
+            <div id="settings-panel" class="settings-panel">
+                <h3>距離（ヤード）の設定</h3>
+                
+                <div class="settings-row">
+                    <h4>2nd Down</h4>
+                    <div class="settings-inputs">
+                        <div class="input-group">
+                            <label>Short:</label>
+                            <input type="number" id="d2-short-max" value="3" min="1" max="10">
+                            <span>yd 以下</span>
+                        </div>
+                        <div class="input-group">
+                            <label>Medium:</label>
+                            <input type="number" id="d2-med-min" value="4" min="1" max="20">
+                            <span>yd 〜</span>
+                            <input type="number" id="d2-med-max" value="7" min="1" max="20">
+                            <span>yd</span>
+                        </div>
+                        <div class="input-group">
+                            <label>Long:</label>
+                            <input type="number" id="d2-long-min" value="7" min="1" max="20">
+                            <span>yd 以上</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-row">
+                    <h4>3rd Down</h4>
+                    <div class="settings-inputs">
+                        <div class="input-group">
+                            <label>Short:</label>
+                            <input type="number" id="d3-short-max" value="3" min="1" max="10">
+                            <span>yd 以下</span>
+                        </div>
+                        <div class="input-group">
+                            <label>Medium:</label>
+                            <input type="number" id="d3-med-min" value="4" min="1" max="20">
+                            <span>yd 〜</span>
+                            <input type="number" id="d3-med-max" value="7" min="1" max="20">
+                            <span>yd</span>
+                        </div>
+                        <div class="input-group">
+                            <label>Long:</label>
+                            <input type="number" id="d3-long-min" value="7" min="1" max="20">
+                            <span>yd 以上</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-row">
+                    <h4>4th Down</h4>
+                    <div class="settings-inputs">
+                        <div class="input-group">
+                            <label>Short:</label>
+                            <input type="number" id="d4-short-max" value="3" min="1" max="10">
+                            <span>yd 以下</span>
+                        </div>
+                    </div>
+                </div>
+                <p class="settings-hint">※設定はExcelをアップロードする前に変更してください。</p>
+            </div>
+
+            <div id="drop-zone" class="drop-zone">
+                <div class="drop-zone-content">
+                    <svg class="upload-icon" xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                    <p class="drop-zone-text">ここにExcelファイルをドラッグ＆ドロップ<br>または <span>ファイルを選択</span></p>
+                    <input type="file" id="file-input" accept=".xlsx, .xls, .csv">
+                </div>
+            </div>
+
+            <div id="results-container" class="results-container hidden">
+                <div class="table-header">
+                    <h2>分析結果</h2>
+                    <div class="header-buttons">
+                        <button id="download-btn" class="download-btn">画像として保存</button>
+                        <button id="reset-btn" class="reset-btn">別のファイルを分析</button>
+                    </div>
+                </div>
+                <div id="debug-info" class="debug-info"></div>
+                <div class="table-wrapper">
+                    <table id="tendency-table">
+                        <thead>
+                            <tr>
+                                <th></th>
+                                <th>Run</th>
+                                <th>Pass</th>
+                                <th>RPO</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-body">
+                            <!-- Rows will be dynamically inserted here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script>
+// app.js
+document.addEventListener('DOMContentLoaded', () => {
+    const dropZone = document.getElementById('drop-zone');
+    const fileInput = document.getElementById('file-input');
+    const resultsContainer = document.getElementById('results-container');
+    const tableBody = document.getElementById('table-body');
+    const resetBtn = document.getElementById('reset-btn');
+    const downloadBtn = document.getElementById('download-btn');
+
+    // Dynamically generate categories based on settings
+    function getCategoriesConfig() {
+        const d2Short = parseInt(document.getElementById('d2-short-max').value) || 3;
+        const d2MedMin = parseInt(document.getElementById('d2-med-min').value) || 4;
+        const d2MedMax = parseInt(document.getElementById('d2-med-max').value) || 7;
+        const d2Long = parseInt(document.getElementById('d2-long-min').value) || 7;
+
+        const d3Short = parseInt(document.getElementById('d3-short-max').value) || 3;
+        const d3MedMin = parseInt(document.getElementById('d3-med-min').value) || 4;
+        const d3MedMax = parseInt(document.getElementById('d3-med-max').value) || 7;
+        const d3Long = parseInt(document.getElementById('d3-long-min').value) || 7;
+
+        const d4Short = parseInt(document.getElementById('d4-short-max').value) || 3;
+
+        return [
+            { id: "1st Down", down: 1, label: "1<sup>st</sup> Down" },
+            { id: "2nd Down Short", down: 2, label: `2<sup>nd</sup> Down ≤${d2Short}` },
+            { id: "2nd Down Med", down: 2, label: `2<sup>nd</sup> Down ${d2MedMin}-${d2MedMax}` },
+            { id: "2nd Down Long", down: 2, label: `2<sup>nd</sup> Down ${d2Long}+` },
+            { id: "3rd Down Short", down: 3, label: `3<sup>rd</sup> Down ≤${d3Short}` },
+            { id: "3rd Down Med", down: 3, label: `3<sup>rd</sup> Down ${d3MedMin}-${d3MedMax}` },
+            { id: "3rd Down Long", down: 3, label: `3<sup>rd</sup> Down ${d3Long}+` },
+            { id: "4th Down Short", down: 4, label: `4<sup>th</sup> Down ≤${d4Short}` }
+        ];
+    }
+
+    // Drag and Drop styles
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, preventDefaults, false);
+    });
+
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    ['dragenter', 'dragover'].forEach(eventName => {
+        dropZone.addEventListener(eventName, () => dropZone.classList.add('dragover'), false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, () => dropZone.classList.remove('dragover'), false);
+    });
+
+    // Handle File Drop
+    dropZone.addEventListener('drop', handleDrop, false);
+    fileInput.addEventListener('change', (e) => {
+        if(e.target.files.length > 0) {
+            handleFiles(e.target.files);
+        }
+    });
+
+    function handleDrop(e) {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        handleFiles(files);
+    }
+
+    function handleFiles(files) {
+        const file = files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const data = new Uint8Array(e.target.result);
+            processExcel(data);
+        };
+        reader.readAsArrayBuffer(file);
+    }
+
+    function getCategory(down, dist) {
+        const d = parseInt(down);
+        let dst;
+        
+        if (typeof dist === 'string') {
+            const lowerDist = dist.toLowerCase();
+            if (lowerDist.includes('inch')) {
+                dst = 0.5;
+            } else {
+                dst = parseFloat(dist);
+            }
+        } else {
+            dst = parseFloat(dist);
+        }
+        
+        if (isNaN(d)) return [];
+
+        // 1st Down doesn't usually care about distance in this tendency table
+        if (d === 1) return ["1st Down"];
+        
+        // For 2nd, 3rd, 4th down, distance is required
+        if (isNaN(dst)) return [];
+
+        let cats = [];
+        
+        if (d === 2) {
+            const shortMax = parseInt(document.getElementById('d2-short-max').value) || 3;
+            const medMin = parseInt(document.getElementById('d2-med-min').value) || 4;
+            const medMax = parseInt(document.getElementById('d2-med-max').value) || 7;
+            const longMin = parseInt(document.getElementById('d2-long-min').value) || 7;
+            if (dst <= shortMax) cats.push("2nd Down Short");
+            if (dst >= medMin && dst <= medMax) cats.push("2nd Down Med");
+            if (dst >= longMin) cats.push("2nd Down Long");
+        }
+        if (d === 3) {
+            const shortMax = parseInt(document.getElementById('d3-short-max').value) || 3;
+            const medMin = parseInt(document.getElementById('d3-med-min').value) || 4;
+            const medMax = parseInt(document.getElementById('d3-med-max').value) || 7;
+            const longMin = parseInt(document.getElementById('d3-long-min').value) || 7;
+            if (dst <= shortMax) cats.push("3rd Down Short");
+            if (dst >= medMin && dst <= medMax) cats.push("3rd Down Med");
+            if (dst >= longMin) cats.push("3rd Down Long");
+        }
+        if (d === 4) {
+            const shortMax = parseInt(document.getElementById('d4-short-max').value) || 3;
+            if (dst <= shortMax) cats.push("4th Down Short");
+        }
+        return cats;
+    }
+
+    function processExcel(data) {
+        try {
+            const workbook = XLSX.read(data, { type: 'array' });
+            const firstSheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[firstSheetName];
+            
+            // Get raw array of arrays to handle files where headers aren't on row 1 perfectly
+            const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false });
+            
+            let headerRowIndex = -1;
+            let headerColIndices = { playType: -1, down: -1, dist: -1 };
+            let debugCols = { pt: "", dn: "", ds: "" };
+
+            // Scan first 20 rows for headers
+            for (let i = 0; i < Math.min(jsonData.length, 20); i++) {
+                const row = jsonData[i];
+                if (!row) continue;
+                
+                let pt = -1, dn = -1, ds = -1;
+                for (let j = 0; j < row.length; j++) {
+                    const cellVal = row[j];
+                    if (cellVal === undefined || cellVal === null) continue;
+                    
+                    const cell = String(cellVal).toLowerCase().replace(/\s+/g, '');
+                    // Check possible matches
+                    if (cell === 'playtype(d)') { pt = j; debugCols.pt = `[${j+1}]${cellVal}`; }
+                    if (cell === 'dn' || cell === 'down') { dn = j; debugCols.dn = `[${j+1}]${cellVal}`; }
+                    if (cell === 'dist' || cell === 'distance') { ds = j; debugCols.ds = `[${j+1}]${cellVal}`; }
+                }
+                
+                // If we found at least DN, Dist, and PlayType
+                if (pt !== -1 && dn !== -1 && ds !== -1) {
+                    headerRowIndex = i;
+                    headerColIndices = { playType: pt, down: dn, dist: ds };
+                    break;
+                }
+            }
+
+            if (headerRowIndex === -1) {
+                // Determine which ones are missing for better error message
+                let missing = [];
+                if (headerColIndices.playType === -1) missing.push("Play Type(D)");
+                if (headerColIndices.down === -1) missing.push("DN");
+                if (headerColIndices.dist === -1) missing.push("Dist");
+                
+                alert(`エラー: Excelから必要な列が見つかりませんでした。\n不足している列: ${missing.join(", ")}\n\n1行目（または上部）にヘッダーがあるか確認してください。`);
+                
+                // Show dropzone again
+                dropZone.classList.remove('hidden');
+                resultsContainer.classList.add('hidden');
+                return;
+            }
+
+            // Initialize Stats
+            const currentCategories = getCategoriesConfig();
+            const stats = {};
+            currentCategories.forEach(c => {
+                stats[c.id] = { total: 0, Run: 0, Pass: 0, RPO: 0 };
+            });
+
+            let processedCount = 0;
+
+            // Process Data starting from row after header
+            for (let i = headerRowIndex + 1; i < jsonData.length; i++) {
+                const row = jsonData[i];
+                if (!row) continue;
+
+                let playType = row[headerColIndices.playType];
+                if (playType === undefined || playType === null || playType.toString().trim() === "") continue;
+                
+                let typeStr = playType.toString().trim().toLowerCase();
+                
+                if (typeStr === "punt") continue;
+
+                let typeCategory = null;
+                if (typeStr === "run") typeCategory = "Run";
+                else if (typeStr === "pass") typeCategory = "Pass";
+                else if (typeStr === "rpo(run)" || typeStr === "rpo(pass)") typeCategory = "RPO";
+                
+                if (!typeCategory) continue;
+
+                let down = row[headerColIndices.down];
+                let dist = row[headerColIndices.dist];
+
+                if (down === undefined || dist === undefined) continue;
+
+                let cats = getCategory(down, dist);
+                let counted = false;
+                cats.forEach(cat => {
+                    if (stats[cat]) {
+                        stats[cat].total++;
+                        stats[cat][typeCategory]++;
+                        counted = true;
+                    }
+                });
+                if (counted) processedCount++;
+            }
+
+            if (processedCount === 0) {
+                alert("データの読み取りに成功しましたが、集計対象となるプレイが1件もありませんでした。データの中身が正しいか確認してください。");
+            }
+
+            renderTable(stats, {
+                headerRow: headerRowIndex + 1,
+                dnCol: debugCols.dn,
+                dsCol: debugCols.ds,
+                ptCol: debugCols.pt,
+                count: processedCount
+            }, currentCategories);
+
+        } catch (error) {
+            console.error("Excel processing error:", error);
+            alert("ファイルの読み込み中にエラーが発生しました。");
+        }
+    }
+
+    function formatCell(count, total) {
+        if (total === 0) return `<div class="empty-cell">-</div>`;
+        const percentage = Math.round((count / total) * 100);
+        const highlightClass = percentage >= 70 ? ' highlight-red' : '';
+        return `<div class="stat-cell${highlightClass}">${percentage}% <span>(${count}/${total})</span></div>`;
+    }
+
+    function renderTable(stats, debugData, currentCategories) {
+        tableBody.innerHTML = '';
+        
+        if (debugData) {
+            document.getElementById('debug-info').innerText = `【デバッグ】見出し行:${debugData.headerRow} | DN列:${debugData.dnCol} | Dist列:${debugData.dsCol} | PlayType列:${debugData.ptCol} | 集計対象プレイ数:${debugData.count}`;
+        }
+
+        currentCategories.forEach(c => {
+            const rowStats = stats[c.id];
+            const tr = document.createElement('tr');
+            tr.setAttribute('data-down', c.down);
+
+            const tdLabel = document.createElement('td');
+            tdLabel.innerHTML = c.label;
+            tr.appendChild(tdLabel);
+
+            const tdRun = document.createElement('td');
+            tdRun.innerHTML = formatCell(rowStats.Run, rowStats.total);
+            tr.appendChild(tdRun);
+
+            const tdPass = document.createElement('td');
+            tdPass.innerHTML = formatCell(rowStats.Pass, rowStats.total);
+            tr.appendChild(tdPass);
+
+            const tdRPO = document.createElement('td');
+            tdRPO.innerHTML = formatCell(rowStats.RPO, rowStats.total);
+            tr.appendChild(tdRPO);
+
+            tableBody.appendChild(tr);
+        });
+
+        dropZone.classList.add('hidden');
+        resultsContainer.classList.remove('hidden');
+    }
+
+    resetBtn.addEventListener('click', () => {
+        fileInput.value = '';
+        resultsContainer.classList.add('hidden');
+        dropZone.classList.remove('hidden');
+    });
+
+    downloadBtn.addEventListener('click', () => {
+        const table = document.getElementById('tendency-table');
+        
+        // Use html2canvas to capture the table
+        html2canvas(table, {
+            scale: 2, // High resolution
+            backgroundColor: "#ffffff"
+        }).then(canvas => {
+            const link = document.createElement('a');
+            const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+            link.download = `DownAndDistance_${dateStr}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }).catch(err => {
+            console.error("Image generation error: ", err);
+            alert("画像の保存に失敗しました。");
+        });
+    });
+});
+    </script>
+    <script src="menu.js"></script>
+    <script src="secure-data.js"></script>
+    <script src="shared-data.js"></script>
+</body>
+</html>

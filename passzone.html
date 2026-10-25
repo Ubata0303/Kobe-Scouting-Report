@@ -1,0 +1,1019 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-R66F299BPN"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-R66F299BPN');
+    </script>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pass Zone Heat Map</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+:root {
+    --bg-color: #f0f0f0;
+    --card-bg: #ffffff;
+    --text-main: #000000;
+    --text-muted: #555555;
+    --primary: #9c1b1b;
+    --primary-hover: #801616;
+    --border: #d1d5db;
+    
+    /* Pastel colors for a light theme */
+    --color-over20: #f45b5b; /* Darker Red from reference */
+    --color-over10: #ffadad; /* Light Pink/Red from reference */
+    --color-under10: #bdd7ee; /* Light Blue from reference */
+    --color-zero: #5b9bd5; /* Dark Blue from reference */
+    
+    /* Field Grid Colors */
+    --grid-line: #000000;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Outfit', 'Roboto', sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-main);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 2rem;
+}
+
+.app-container {
+    width: 100%;
+    max-width: 900px;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 2.5rem;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+h1 {
+    font-size: 2.5rem;
+    font-weight: 800;
+    margin-bottom: 0.5rem;
+    color: #9c1b1b;
+}
+
+header p {
+    color: var(--text-muted);
+    font-size: 1.1rem;
+}
+
+/* Drop Zone */
+.drop-zone {
+    border: 2px dashed var(--border);
+    border-radius: 8px;
+    padding: 3rem 2rem;
+    text-align: center;
+    transition: all 0.3s ease;
+    background: #fafafa;
+    cursor: pointer;
+}
+
+.drop-zone.dragover {
+    border-color: var(--primary);
+    background: #fef2f2;
+}
+
+.drop-zone-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+}
+
+.upload-icon {
+    color: var(--primary);
+    margin-bottom: 0.5rem;
+}
+
+.or-text {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+}
+
+.btn-primary {
+    background-color: var(--primary);
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    border: none;
+    font-size: 1rem;
+}
+
+.btn-primary:hover {
+    background-color: var(--primary-hover);
+}
+
+.btn-secondary {
+    background-color: transparent;
+    color: var(--text-main);
+    border: 1px solid var(--border);
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.btn-secondary:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Heatmap Container */
+.hidden {
+    display: none !important;
+}
+
+.heatmap-container {
+    animation: fadeIn 0.5s ease-out;
+    max-width: 680px;
+    margin: 0 auto;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Hash Filter Tabs */
+.hash-filter {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+    background: #f3f4f6;
+    padding: 0.5rem;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+}
+
+.hash-tab {
+    background: transparent;
+    color: var(--text-muted);
+    border: none;
+    padding: 0.5rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.hash-tab:hover {
+    color: var(--primary);
+    background: rgba(156, 27, 27, 0.1);
+}
+
+.hash-tab.active {
+    background: var(--primary);
+    color: white;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.total-passes {
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+/* Legend */
+.legend {
+    display: flex;
+    justify-content: center;
+    gap: 1.5rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    color: var(--text-main);
+}
+
+.color-box {
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+}
+
+.color-box.over-20 { background-color: var(--color-over20); }
+.color-box.over-10 { background-color: var(--color-over10); }
+.color-box.under-10 { background-color: var(--color-under10); }
+.color-box.zero { background-color: var(--color-zero); }
+
+.football-field-wrapper {
+    display: flex;
+    justify-content: center;
+    position: relative;
+    width: 100%;
+    max-width: 680px; /* Tightened from 800px to perfectly fit 600px grid + 80px label padding */
+    margin: 0 auto;
+    padding: 0 10px;
+}
+
+.yard-label {
+    position: absolute;
+    font-weight: 800;
+    font-size: 1.5rem;
+    color: #000; /* Black for light theme app */
+    margin-top: -1.1rem; /* Use margin instead of transform for html2canvas compatibility */
+    z-index: 10;
+}
+.yard-label.left {
+    right: 100%;
+    padding-right: 5px; /* Tighter against the grid */
+    left: auto;
+}
+.yard-label.right {
+    left: 100%;
+    padding-left: 5px; /* Tighter against the grid */
+    right: auto;
+}
+
+.y-10 { top: 156px; }
+.y-5 { top: 310px; }
+.y-0 { top: 466px; }
+
+/* Football Field */
+.football-field-outer {
+    position: relative;
+    padding: 0 40px; /* Symmetrical space for left/right yard labels */
+    width: 100%;
+    max-width: 680px; /* 600px grid + 80px padding */
+}
+
+.football-field {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(3, 150px);
+    gap: 4px; /* thick grid lines */
+    background-color: var(--grid-line);
+    border: 4px solid var(--grid-line);
+    border-bottom-width: 1px; /* Very thin bottom border as requested */
+    position: relative;
+    width: 100%;
+    max-width: 600px;
+    margin: 0 auto; /* Center the grid within the outer container */
+}
+
+/* --- Consolidated Tick Marks (Solves html2canvas rendering bugs) --- */
+/* Left side ticks (Inner and Outer) */
+.zone[data-zone="1"]::before, .zone[data-zone="4"]::before, .zone[data-zone="7"]::before,
+.zone[data-zone="3"]::before, .zone[data-zone="6"]::before, .zone[data-zone="9"]::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 12px;
+    background-color: #ffffff !important;
+    box-sizing: border-box;
+    border-right: 6px solid #ffffff;
+    pointer-events: none;
+    background-image: linear-gradient(
+        to bottom,
+        #ffffff 0, #ffffff 29px,
+        #000 29px, #000 31px,
+        #ffffff 31px, #ffffff 59px,
+        #000 59px, #000 61px,
+        #ffffff 61px, #ffffff 89px,
+        #000 89px, #000 91px,
+        #ffffff 91px, #ffffff 119px,
+        #000 119px, #000 121px,
+        #ffffff 121px, #ffffff 150px
+    );
+    background-size: 100% 150px;
+    background-repeat: no-repeat;
+    z-index: 5;
+}
+
+/* Right side ticks (Inner and Outer) */
+.zone[data-zone="1"]::after, .zone[data-zone="4"]::after, .zone[data-zone="7"]::after,
+.zone[data-zone="3"]::after, .zone[data-zone="6"]::after, .zone[data-zone="9"]::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    right: 0;
+    width: 12px;
+    background-color: #ffffff !important;
+    box-sizing: border-box;
+    border-left: 6px solid #ffffff;
+    pointer-events: none;
+    background-image: linear-gradient(
+        to bottom,
+        #ffffff 0, #ffffff 29px,
+        #000 29px, #000 31px,
+        #ffffff 31px, #ffffff 59px,
+        #000 59px, #000 61px,
+        #ffffff 61px, #ffffff 89px,
+        #000 89px, #000 91px,
+        #ffffff 91px, #ffffff 119px,
+        #000 119px, #000 121px,
+        #ffffff 121px, #ffffff 150px
+    );
+    background-size: 100% 150px;
+    background-repeat: no-repeat;
+    z-index: 5;
+}
+
+/* White bands for middle column (Restored!) */
+.zone[data-zone="2"]::before, .zone[data-zone="5"]::before, .zone[data-zone="8"]::before {
+    content: ''; position: absolute; top: 0; bottom: 0; left: 0; width: 12px; background-color: #ffffff; z-index: 5;
+}
+.zone[data-zone="2"]::after, .zone[data-zone="5"]::after, .zone[data-zone="8"]::after {
+    content: ''; position: absolute; top: 0; bottom: 0; right: 0; width: 12px; background-color: #ffffff; z-index: 5;
+}
+
+.zone {
+    background-color: var(--color-zero);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    transition: background-color 0.5s ease;
+    /* borders and box-shadow removed; white gaps drawn by ::before/::after */
+}
+
+.bg-number {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 8rem;
+    font-weight: 800;
+    color: rgba(0, 0, 0, 0.08);
+    z-index: 1;
+    user-select: none;
+}
+
+.data-content {
+    position: relative;
+    z-index: 2;
+    text-align: center;
+    color: #000;
+    text-shadow: 0 1px 2px rgba(255,255,255,0.5);
+}
+
+.percentage {
+    display: block;
+    font-size: 1.8rem;
+    font-weight: 800;
+}
+
+.fraction {
+    display: block;
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-top: 0.2rem;
+}
+
+/* Line of scrimmage and Backfield area */
+.los {
+    grid-column: 1 / -1;
+    height: 154px; /* One 150px row + 4px gap */
+    background-color: #fff;
+    border-top: 4px solid #cc0000; /* Restored Red line for LOS */
+    position: relative;
+    margin-top: -4px; /* Pull up to cover the black grid gap */
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px; /* Match the main grid gap */
+}
+
+.los-zone {
+    position: relative;
+    /* borders removed; white gaps drawn by ::before/::after */
+}
+
+/* Tick marks for the backfield */
+.los-zone.left::before, .los-zone.right::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 12px;
+    background-color: #ffffff !important;
+    box-sizing: border-box;
+    border-right: 6px solid #ffffff;
+    pointer-events: none;
+    background-image: linear-gradient(
+        to bottom,
+        #ffffff 0, #ffffff 29px,
+        #000 29px, #000 31px,
+        #ffffff 31px, #ffffff 59px,
+        #000 59px, #000 61px,
+        #ffffff 61px, #ffffff 89px,
+        #000 89px, #000 91px,
+        #ffffff 91px, #ffffff 119px,
+        #000 119px, #000 121px,
+        #ffffff 121px, #ffffff 150px
+    );
+    background-size: 100% 150px;
+    background-repeat: no-repeat;
+    z-index: 5;
+}
+
+.los-zone.left::after, .los-zone.right::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    right: 0;
+    width: 12px;
+    background-color: #ffffff !important;
+    box-sizing: border-box;
+    border-left: 6px solid #ffffff;
+    pointer-events: none;
+    background-image: linear-gradient(
+        to bottom,
+        #ffffff 0, #ffffff 29px,
+        #000 29px, #000 31px,
+        #ffffff 31px, #ffffff 59px,
+        #000 59px, #000 61px,
+        #ffffff 61px, #ffffff 89px,
+        #000 89px, #000 91px,
+        #ffffff 91px, #ffffff 119px,
+        #000 119px, #000 121px,
+        #ffffff 121px, #ffffff 150px
+    );
+    background-size: 100% 150px;
+    background-repeat: no-repeat;
+    z-index: 5;
+}
+
+/* White bands for middle column (Restored!) */
+.los-zone.center::before { content: ''; position: absolute; top: 0; bottom: 0; left: 0; width: 12px; background-color: #ffffff; z-index: 5; }
+.los-zone.center::after { content: ''; position: absolute; top: 0; bottom: 0; right: 0; width: 12px; background-color: #ffffff; z-index: 5; }
+
+.football {
+    font-size: 2rem;
+    position: absolute;
+    top: 40px; /* Placed in the backfield behind the LOS */
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(90deg);
+    transition: left 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 10;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+    .football-field {
+        grid-template-rows: repeat(3, 100px);
+    }
+    .bg-number { font-size: 5rem; }
+    .percentage { font-size: 1.3rem; }
+    .fraction { font-size: 0.9rem; }
+}
+
+</style>
+    <!-- SheetJS for Excel parsing -->
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+    <!-- html2canvas for image export -->
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <style>
+/* Tendency Breaker 共通ナビ */
+body { flex-wrap: wrap; align-content: flex-start; }
+.tb-nav { flex-basis: 100%; max-width: 900px; display: flex; gap: 8px; flex-wrap: wrap; margin: 0 auto 1rem; font-family: 'Inter', 'Outfit', sans-serif; }
+.tb-nav a { padding: 8px 14px; border-radius: 8px; text-decoration: none; color: #475569; background: #fff; border: 1px solid #e2e8f0; font-size: 0.9rem; font-weight: 600; }
+.tb-nav a.active { background: #3b82f6; color: #fff; border-color: #3b82f6; }
+    </style>
+    <style>
+/* 閲覧アプリ（viewer）：読み込み操作を隠す */
+#drop-zone, #reset-btn, #clear-btn, #settings-panel, #debug-info, .debug-info, #total-play-count, .upload-section > .upload-area { display: none !important; }
+/* 閲覧アプリ：画像保存ボタンと表示切替チェックボックスを隠す（チェックは全てONのまま＝全部表示） */
+#save-image-btn, #download-btn, #export-all-btn, #export-header-btn, #capture-all-btn, #capture-header-btn,
+.camera-btn, .capture-btn, #visibility-controls, input[type="checkbox"] { display: none !important; }
+/* Pass Zone：フィールドはPC版と全く同じ形・縮尺で描き、画面幅に合わせて全体をそのまま縮小する
+   （ヤードの線・目盛り・数字の位置関係を崩さないため。下のスクリプトで縮小率を計算） */
+.football-field-wrapper { padding: 0 !important; display: block !important; overflow: visible; }
+.football-field-outer { width: 720px !important; max-width: none !important; padding: 0 60px !important; box-sizing: border-box; margin: 0 auto; }
+.football-field { grid-template-rows: repeat(3, 150px) !important; }
+.bg-number { font-size: 8rem !important; }
+.percentage { font-size: 1.8rem !important; }
+.fraction { font-size: 1.1rem !important; }
+.yard-label { font-size: 1.5rem !important; margin-top: -1.1rem !important; }
+/* 1ヤードごとの目盛り：縮小しても消えないよう、縮小率に合わせて線を太らせる（画面上はPC版と同じ約2pxの太さ） */
+.zone[data-zone="1"]::before, .zone[data-zone="4"]::before, .zone[data-zone="7"]::before,
+.zone[data-zone="3"]::before, .zone[data-zone="6"]::before, .zone[data-zone="9"]::before,
+.zone[data-zone="1"]::after, .zone[data-zone="4"]::after, .zone[data-zone="7"]::after,
+.zone[data-zone="3"]::after, .zone[data-zone="6"]::after, .zone[data-zone="9"]::after,
+.los-zone.left::before, .los-zone.left::after, .los-zone.right::before, .los-zone.right::after {
+    background-image: linear-gradient(to bottom,
+    #fff 0, #fff calc(30px - var(--tk, 1px)), #000 calc(30px - var(--tk, 1px)), #000 calc(30px + var(--tk, 1px)),
+    #fff calc(30px + var(--tk, 1px)), #fff calc(60px - var(--tk, 1px)), #000 calc(60px - var(--tk, 1px)), #000 calc(60px + var(--tk, 1px)),
+    #fff calc(60px + var(--tk, 1px)), #fff calc(90px - var(--tk, 1px)), #000 calc(90px - var(--tk, 1px)), #000 calc(90px + var(--tk, 1px)),
+    #fff calc(90px + var(--tk, 1px)), #fff calc(120px - var(--tk, 1px)), #000 calc(120px - var(--tk, 1px)), #000 calc(120px + var(--tk, 1px)),
+    #fff calc(120px + var(--tk, 1px)), #fff 150px) !important;
+}
+/* 閲覧アプリ：4画面の題名をすべて同じ赤（Down & Distanceの赤）に */
+h1, h1 span { color: #a51f1f !important; -webkit-text-fill-color: #a51f1f !important; background: none !important; }
+/* スマホ表示の調整 */
+.app-container, .container { min-width: 0; max-width: 100%; }
+.table-wrapper, .table-container { overflow-x: auto; -webkit-overflow-scrolling: touch; max-width: 100%; }
+@media (max-width: 600px) {
+    body { padding: 10px !important; }
+    .app-container, .container { padding: 14px !important; border-radius: 8px; }
+    .tb-nav { gap: 6px; margin-bottom: 10px; }
+    .tb-nav a { padding: 6px 10px; font-size: 0.8rem; }
+    #tb-shared-banner { margin-bottom: 10px !important; }
+    h1 { font-size: 1.5rem !important; line-height: 1.25; }
+    .hash-filter { flex-wrap: wrap; }
+    .controls { flex-wrap: wrap; gap: 8px; }
+    .legend { gap: 0.6rem 1rem; }
+    .hash-filter { gap: 4px; padding: 4px; }
+    .hash-tab { padding: 6px 10px !important; font-size: 0.8rem !important; }
+    /* Personnel / Formation */
+    .results-container { padding: 12px !important; }
+    .results-header, .result-header { flex-wrap: wrap; gap: 8px; align-items: flex-start !important; }
+    .results-header h2, .result-header h2 { font-size: 1.2rem !important; }
+    .results-header button, .result-header button { writing-mode: horizontal-tb; white-space: nowrap; padding: 6px 10px !important; font-size: 0.8rem !important; }
+    /* 表 */
+    table { font-size: 0.8rem; }
+    th, td { padding: 6px 8px !important; }
+}
+    </style>
+</head>
+<body data-mode="viewer">
+    <nav class="tb-nav">
+        <a href="index.html">Dashboard</a>
+        <a href="passzone.html" class="active">Pass Zone</a>
+        <a href="dd.html">Down &amp; Distance</a>
+        <a href="personnel.html">Personnel</a>
+        <a href="formation.html">Formation</a>
+        <a href="play.html">Play Diagram</a>
+        <a href="member.html">Member List</a>
+        <a href="cadence.html">Cadence</a>
+    </nav>
+    <div class="app-container">
+        <header>
+            <h1>Pass Zone Heat Map</h1>
+        </header>
+
+        <main>
+            <div id="drop-zone" class="drop-zone">
+                <div class="drop-zone-content">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="upload-icon"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                    <p>ここにExcel/CSVファイルをドラッグ＆ドロップ</p>
+                    <span class="or-text">または</span>
+                    <label for="file-input" class="btn-primary">ファイルを選択</label>
+                    <input type="file" id="file-input" accept=".xlsx, .xls, .csv" hidden>
+                </div>
+            </div>
+
+            <div id="heatmap-container" class="heatmap-container hidden">
+                <div class="hash-filter">
+                    <button class="hash-tab active" data-hash="ALL">ALL</button>
+                    <button class="hash-tab" data-hash="L">Left (L)</button>
+                    <button class="hash-tab" data-hash="M">Middle (M)</button>
+                    <button class="hash-tab" data-hash="R">Right (R)</button>
+                </div>
+
+                <div class="controls">
+                    <div>
+                        <button id="reset-btn" class="btn-secondary">リセット</button>
+                        <button id="save-image-btn" class="btn-primary" style="margin-left: 0.5rem; padding: 0.5rem 1rem;">画像として保存</button>
+                    </div>
+                    <div class="total-passes">Total Passes: <span id="total-count">0</span></div>
+                </div>
+
+                <div class="legend">
+                    <div class="legend-item"><span class="color-box over-20"></span>Over 20%</div>
+                    <div class="legend-item"><span class="color-box over-10"></span>Over 10%</div>
+                    <div class="legend-item"><span class="color-box under-10"></span>Under 10%</div>
+                    <div class="legend-item"><span class="color-box zero"></span>0%</div>
+                </div>
+
+                <div class="football-field-wrapper">
+                    <div class="football-field-outer">
+                        <div class="football-field">
+                            <!-- Left Yard Markers -->
+                            <span class="yard-label left y-10">10~</span>
+                            <span class="yard-label left y-5">5</span>
+                            <span class="yard-label left y-0">0</span>
+
+                            <!-- Right Yard Markers -->
+                            <span class="yard-label right y-10">10~</span>
+                            <span class="yard-label right y-5">5</span>
+                            <span class="yard-label right y-0">0</span>
+                            
+                            <!-- Top Row (Deep) -->
+                            <div class="zone" id="zone-7" data-zone="7"><span class="bg-number">7</span><div class="data-content"><span class="percentage">0%</span><span class="fraction">(0/0)</span></div></div>
+                            <div class="zone" id="zone-8" data-zone="8"><span class="bg-number">8</span><div class="data-content"><span class="percentage">0%</span><span class="fraction">(0/0)</span></div></div>
+                            <div class="zone" id="zone-9" data-zone="9"><span class="bg-number">9</span><div class="data-content"><span class="percentage">0%</span><span class="fraction">(0/0)</span></div></div>
+                            
+                            <!-- Middle Row (Intermediate) -->
+                            <div class="zone" id="zone-4" data-zone="4"><span class="bg-number">4</span><div class="data-content"><span class="percentage">0%</span><span class="fraction">(0/0)</span></div></div>
+                            <div class="zone" id="zone-5" data-zone="5"><span class="bg-number">5</span><div class="data-content"><span class="percentage">0%</span><span class="fraction">(0/0)</span></div></div>
+                            <div class="zone" id="zone-6" data-zone="6"><span class="bg-number">6</span><div class="data-content"><span class="percentage">0%</span><span class="fraction">(0/0)</span></div></div>
+                        
+                        <!-- Bottom Row (Short) -->
+                        <div class="zone" id="zone-1" data-zone="1"><span class="bg-number">1</span><div class="data-content"><span class="percentage">0%</span><span class="fraction">(0/0)</span></div></div>
+                        <div class="zone" id="zone-2" data-zone="2"><span class="bg-number">2</span><div class="data-content"><span class="percentage">0%</span><span class="fraction">(0/0)</span></div></div>
+                        <div class="zone" id="zone-3" data-zone="3"><span class="bg-number">3</span><div class="data-content"><span class="percentage">0%</span><span class="fraction">(0/0)</span></div></div>
+                        
+                        <!-- Line of Scrimmage / Backfield Area -->
+                        <div class="los">
+                            <!-- Inner zones to help draw the hash marks via CSS Grid -->
+                            <div class="los-zone left"></div>
+                            <div class="los-zone middle"></div>
+                            <div class="los-zone right"></div>
+                            <div class="football">🏈</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script>
+document.addEventListener('DOMContentLoaded', () => {
+    const dropZone = document.getElementById('drop-zone');
+    const fileInput = document.getElementById('file-input');
+    const heatmapContainer = document.getElementById('heatmap-container');
+    const resetBtn = document.getElementById('reset-btn');
+    const totalCountEl = document.getElementById('total-count');
+    const hashTabs = document.querySelectorAll('.hash-tab');
+    const footballEl = document.querySelector('.football');
+
+    // Store parsed data
+    let allPlays = [];
+    let currentHashFilter = 'ALL';
+
+    // Prevent default drag behaviors
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, preventDefaults, false);
+        document.body.addEventListener(eventName, preventDefaults, false);
+    });
+
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    // Highlight drop zone
+    ['dragenter', 'dragover'].forEach(eventName => {
+        dropZone.addEventListener(eventName, highlight, false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, unhighlight, false);
+    });
+
+    function highlight(e) {
+        dropZone.classList.add('dragover');
+    }
+
+    function unhighlight(e) {
+        dropZone.classList.remove('dragover');
+    }
+
+    // Handle dropped files
+    dropZone.addEventListener('drop', handleDrop, false);
+    
+    // Handle file selection via input
+    fileInput.addEventListener('change', (e) => {
+        if (e.target.files.length) {
+            handleFiles(e.target.files);
+        }
+    });
+
+    function handleDrop(e) {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        handleFiles(files);
+    }
+
+    function handleFiles(files) {
+        const file = files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const data = new Uint8Array(e.target.result);
+            processExcelData(data);
+        };
+        reader.readAsArrayBuffer(file);
+    }
+
+    function processExcelData(data) {
+        try {
+            const workbook = XLSX.read(data, { type: 'array' });
+            const firstSheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[firstSheetName];
+            
+            // Try to parse as array of objects (using 1st row as header)
+            const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+            
+            analyzeData(jsonData, worksheet);
+        } catch (error) {
+            console.error("Error reading file:", error);
+            alert("ファイルの読み込みに失敗しました。ExcelまたはCSVファイルか確認してください。");
+        }
+    }
+
+    function analyzeData(jsonData, worksheet) {
+        allPlays = [];
+        
+        if (jsonData.length === 0) {
+            alert("データが見つかりませんでした。");
+            return;
+        }
+
+        // Try to find the keys for Hash and Zone
+        const keys = Object.keys(jsonData[0]);
+        const hashKey = keys.find(k => k.toLowerCase().includes('hash'));
+        const zoneKey = keys.find(k => k.toLowerCase().includes('zone') || k === 'ゾーン');
+
+        if (hashKey && zoneKey) {
+            // Structured format with Hash and Zone columns
+            jsonData.forEach(row => {
+                const h = String(row[hashKey]).trim().toUpperCase();
+                const z = parseInt(row[zoneKey], 10);
+                
+                if (!isNaN(z) && z >= 1 && z <= 9) {
+                    allPlays.push({ hash: h, zone: z });
+                }
+            });
+        } else {
+            // Fallback: old behavior (scan all cells)
+            console.warn("Hash/Zone headers not found, falling back to all-cells scan");
+            const rawData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+            rawData.forEach(row => {
+                if (!Array.isArray(row)) return;
+                row.forEach(cell => {
+                    const val = String(cell).trim();
+                    const num = parseInt(val, 10);
+                    if (!isNaN(num) && num >= 1 && num <= 9 && val.length === 1) {
+                        allPlays.push({ hash: 'UNKNOWN', zone: num });
+                    }
+                });
+            });
+        }
+
+        if (allPlays.length === 0) {
+            alert("Zone(1〜9)のデータが見つかりませんでした。");
+            return;
+        }
+
+        // Reset filter and update
+        currentHashFilter = 'ALL';
+        updateHashTabs();
+        filterAndRenderHeatmap();
+        
+        // Switch views
+        dropZone.classList.add('hidden');
+        heatmapContainer.classList.remove('hidden');
+    }
+
+    // Handle Hash Tab Clicks
+    hashTabs.forEach(tab => {
+        tab.addEventListener('click', (e) => {
+            currentHashFilter = e.target.dataset.hash;
+            updateHashTabs();
+            filterAndRenderHeatmap();
+        });
+    });
+
+    function updateHashTabs() {
+        hashTabs.forEach(tab => {
+            if (tab.dataset.hash === currentHashFilter) {
+                tab.classList.add('active');
+            } else {
+                tab.classList.remove('active');
+            }
+        });
+
+        if (footballEl) {
+            if (currentHashFilter === 'L') {
+                footballEl.style.left = '33.33%';
+            } else if (currentHashFilter === 'R') {
+                footballEl.style.left = '66.66%';
+            } else {
+                footballEl.style.left = '50%';
+            }
+        }
+    }
+
+    function filterAndRenderHeatmap() {
+        const zoneCounts = {
+            1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0
+        };
+        
+        let filteredPasses = 0;
+
+        allPlays.forEach(play => {
+            if (currentHashFilter === 'ALL' || play.hash === currentHashFilter) {
+                if (zoneCounts[play.zone] !== undefined) {
+                    zoneCounts[play.zone]++;
+                    filteredPasses++;
+                }
+            }
+        });
+
+        updateHeatmapUI(zoneCounts, filteredPasses);
+    }
+
+    function updateHeatmapUI(zoneCounts, totalPasses) {
+        totalCountEl.textContent = totalPasses;
+
+        for (let i = 1; i <= 9; i++) {
+            const count = zoneCounts[i];
+            const percentage = totalPasses > 0 ? (count / totalPasses) * 100 : 0;
+            const zoneEl = document.getElementById(`zone-${i}`);
+            
+            if (zoneEl) {
+                // Update text
+                const pctText = zoneEl.querySelector('.percentage');
+                const fractionText = zoneEl.querySelector('.fraction');
+                
+                // Format to 1 decimal place if not an integer
+                pctText.textContent = `${percentage % 1 === 0 ? percentage : percentage.toFixed(1)}%`;
+                fractionText.textContent = `(${count}/${totalPasses})`;
+
+                // Update color based on percentage
+                let bgColor = 'var(--color-zero)'; // zero
+                if (percentage >= 20) {
+                    bgColor = 'var(--color-over20)'; // over 20
+                } else if (percentage >= 10) {
+                    bgColor = 'var(--color-over10)'; // over 10
+                } else if (percentage > 0) {
+                    bgColor = 'var(--color-under10)'; // under 10
+                }
+                
+                zoneEl.style.backgroundColor = bgColor;
+            }
+        }
+    }
+
+    // Reset functionality
+    resetBtn.addEventListener('click', () => {
+        fileInput.value = '';
+        heatmapContainer.classList.add('hidden');
+        dropZone.classList.remove('hidden');
+        allPlays = [];
+        currentHashFilter = 'ALL';
+        updateHashTabs();
+        
+        // Reset colors and text
+        for (let i = 1; i <= 9; i++) {
+            const zoneEl = document.getElementById(`zone-${i}`);
+            if (zoneEl) {
+                zoneEl.style.backgroundColor = 'var(--color-zero)';
+                zoneEl.querySelector('.percentage').textContent = '0%';
+                zoneEl.querySelector('.fraction').textContent = '(0/0)';
+            }
+        }
+        totalCountEl.textContent = '0';
+    });
+
+    // Save as Image functionality
+    const saveImageBtn = document.getElementById('save-image-btn');
+    if (saveImageBtn) {
+        saveImageBtn.addEventListener('click', () => {
+            // Temporarily hide buttons and hash filter
+            const resetBtn = document.getElementById('reset-btn');
+            const saveBtn = document.getElementById('save-image-btn');
+            const totalPasses = document.querySelector('.total-passes');
+            
+            const originalResetDisplay = resetBtn.style.display;
+            const originalSaveDisplay = saveBtn.style.display;
+            const originalHashDisplay = document.querySelector('.hash-filter').style.display;
+            const originalTotalPassesMarginLeft = totalPasses.style.marginLeft;
+            const originalTotalPassesMarginRight = totalPasses.style.marginRight;
+            
+            // Keep .controls visible, but hide the buttons and push Total Passes to the right
+            resetBtn.style.display = 'none';
+            saveBtn.style.display = 'none';
+            document.querySelector('.hash-filter').style.display = 'none';
+            totalPasses.style.marginLeft = 'auto';
+            totalPasses.style.marginRight = '2rem'; // Push it left from the very edge
+            
+            // (Yard label colors are handled by CSS)
+            const yardLabels = document.querySelectorAll('.yard-label');
+            
+            const field = document.querySelector('.football-field');
+            if (field) field.classList.add('capture-mode');
+
+            // Disable animation to prevent html2canvas opacity/washed-out bugs
+            const originalAnimation = heatmapContainer.style.animation;
+            heatmapContainer.style.animation = 'none';
+
+            // Add snug vertical padding for the downloaded image
+            const originalPadding = heatmapContainer.style.padding;
+            heatmapContainer.style.padding = '30px 15px 60px 15px'; // Half top margin, full bottom margin, slight left/right margin
+
+            // Tighten the outer padding just for the capture to minimize left/right margins
+            const outer = document.querySelector('.football-field-outer');
+            const originalOuterPadding = outer ? outer.style.padding : '';
+            if (outer) outer.style.padding = '0 35px';
+
+            // Fix Total Passes cut-off by not using arbitrary margins during capture
+            totalPasses.style.marginLeft = 'auto';
+            totalPasses.style.marginRight = '20px'; // Safe distance from edge
+
+            // Target the entire heatmap container to include title, legend, and yard markers
+            const captureTarget = document.getElementById('heatmap-container');
+
+            html2canvas(captureTarget, {
+                backgroundColor: '#ffffff', // Set background to white instead of dark
+                scale: 2 // High resolution
+            }).then(canvas => {
+                // Restore UI
+                resetBtn.style.display = originalResetDisplay;
+                saveBtn.style.display = originalSaveDisplay;
+                document.querySelector('.hash-filter').style.display = originalHashDisplay;
+                totalPasses.style.marginLeft = originalTotalPassesMarginLeft;
+                totalPasses.style.marginRight = originalTotalPassesMarginRight;
+                heatmapContainer.style.animation = originalAnimation;
+                heatmapContainer.style.padding = originalPadding;
+                if (outer) outer.style.padding = originalOuterPadding;
+                if (field) field.classList.remove('capture-mode');
+
+                // Trigger download
+                const link = document.createElement('a');
+                link.download = `PassZone_${currentHashFilter}_${new Date().toISOString().slice(0,10)}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            }).catch(err => {
+                console.error("Error generating image", err);
+                alert("画像の保存に失敗しました。");
+                // Restore UI in case of error
+                resetBtn.style.display = originalResetDisplay;
+                saveBtn.style.display = originalSaveDisplay;
+                document.querySelector('.hash-filter').style.display = originalHashDisplay;
+                totalPasses.style.marginLeft = originalTotalPassesMarginLeft;
+                totalPasses.style.marginRight = originalTotalPassesMarginRight;
+                heatmapContainer.style.animation = originalAnimation;
+                heatmapContainer.style.padding = originalPadding;
+                if (outer) outer.style.padding = originalOuterPadding;
+                if (field) field.classList.remove('capture-mode');
+            });
+        });
+    }
+});
+
+</script>
+    <script>
+// 閲覧アプリ：フィールド全体を画面幅に合わせて等倍率で縮小（PC版と同じ見た目のまま）
+(function () {
+    const wrap = document.querySelector('.football-field-wrapper');
+    const outer = document.querySelector('.football-field-outer');
+    if (!wrap || !outer) return;
+    const fit = () => {
+        const avail = wrap.clientWidth;
+        if (!avail) return;
+        const z = Math.min(1, avail / 720);
+        outer.style.zoom = z;
+        outer.style.setProperty('--tk', Math.max(1, 1 / z).toFixed(2) + 'px');
+    };
+    if (window.ResizeObserver) new ResizeObserver(fit).observe(wrap);
+    window.addEventListener('resize', fit);
+    window.addEventListener('orientationchange', () => setTimeout(fit, 200));
+    // ヒートマップが表示された瞬間にも合わせ直す
+    const hm = document.getElementById('heatmap-container');
+    if (hm) new MutationObserver(fit).observe(hm, { attributes: true, attributeFilter: ['class'] });
+    fit();
+})();
+    </script>
+    <script src="menu.js"></script>
+    <script src="secure-data.js"></script>
+    <script src="shared-data.js"></script>
+</body>
+</html>
