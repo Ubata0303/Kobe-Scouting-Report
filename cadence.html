@@ -316,21 +316,30 @@ body {
             const pageCard = document.createElement('div');
             pageCard.className = 'cadence-page-section';
 
-            const headerDiv = document.createElement('div');
-            headerDiv.className = 'cadence-page-header';
+            // ページ大見出し（重複・空欄・単独「Cadence」の場合は不要）
+            const showHeadline = page.headline &&
+                page.headline.trim() !== 'Cadence' &&
+                (!page.items || !page.items[0] || page.headline.trim() !== page.items[0].heading.trim());
 
-            if (pages.length > 1) {
-                const badge = document.createElement('span');
-                badge.className = 'cadence-page-badge';
-                badge.textContent = `Page ${page.page || (pIdx + 1)}`;
-                headerDiv.appendChild(badge);
+            if (pages.length > 1 || showHeadline) {
+                const headerDiv = document.createElement('div');
+                headerDiv.className = 'cadence-page-header';
+
+                if (pages.length > 1) {
+                    const badge = document.createElement('span');
+                    badge.className = 'cadence-page-badge';
+                    badge.textContent = `Page ${page.page || (pIdx + 1)}`;
+                    headerDiv.appendChild(badge);
+                }
+
+                if (showHeadline) {
+                    const h2 = document.createElement('h2');
+                    h2.className = 'cadence-headline';
+                    h2.innerHTML = window.TBScoutingExtra.formatRichText(page.headline);
+                    headerDiv.appendChild(h2);
+                }
+                pageCard.appendChild(headerDiv);
             }
-
-            const h2 = document.createElement('h2');
-            h2.className = 'cadence-headline';
-            h2.textContent = page.headline || (pages.length > 1 ? `Cadence (P.${page.page || (pIdx + 1)})` : 'Cadence');
-            headerDiv.appendChild(h2);
-            pageCard.appendChild(headerDiv);
 
             const photoList = (page.images && page.images.length > 0)
                 ? page.images
